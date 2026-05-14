@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VFR Planner</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0f14;--bg2:#13161d;--bg3:#1a1e28;--bg4:#202532;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#e8eaf0;--text2:#8b90a0;--text3:#555a6a;
+  --accent:#3d8ef0;--green:#34d399;--red:#f87171;--amber:#fbbf24;
+  --vor:#e8a020;--apt:#a78bfa;--magenta:#f472b6;
+  --r:8px;--font:'Syne',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px}
+#app{display:flex;height:100vh}
+#sidebar{width:345px;min-width:345px;display:flex;flex-direction:column;background:var(--bg2);border-right:1px solid var(--border)}
+#sidebar::-webkit-scrollbar{width:4px}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+#map-wrap{flex:1;position:relative}
+#map{width:100%;height:100%}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{flex:1;padding:9px 2px;font-size:10px;font-weight:500;text-align:center;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;transition:all .15s;text-transform:uppercase;letter-spacing:.04em}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-panel{display:none;flex-direction:column;overflow-y:auto;flex:1}
+.tab-panel.active{display:flex;flex-direction:column}
+
+/* LOGO */
+.logo{padding:12px 15px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;flex-shrink:0}
+.logo-icon{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.logo-text{font-size:13px;font-weight:700;letter-spacing:-.02em}
+.logo-sub{font-size:9px;color:var(--text2);font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase}
+
+/* SECTIONS */
+.sec{padding:10px 14px;border-bottom:1px solid var(--border)}
+.sec-title{font-size:9px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.13em;margin-bottom:7px}
+.param-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.param-row label{font-size:11px;color:var(--text2)}
+.param-row input[type=number]{width:74px;font-size:11px;font-family:var(--mono);padding:3px 6px;text-align:right;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);outline:none;transition:border-color .15s}
+.param-row input[type=number]:focus{border-color:var(--accent)}
+
+/* WAYPOINTS */
+.wp-item{display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid var(--border);animation:fi .18s ease}
+@keyframes fi{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+.wp-item:last-child{border-bottom:none}
+.wp-num{width:19px;height:19px;border-radius:50%;color:#fff;font-size:9px;font-weight:700;font-family:var(--mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--accent)}
+.wp-num.v{background:var(--vor)}
+.wp-num.a{background:var(--apt)}
+.wp-name-in{font-size:11px;font-family:var(--mono);border:1px solid var(--border);border-radius:5px;background:var(--bg3);color:var(--text);padding:2px 4px;width:56px;outline:none}
+.wp-coord{font-size:9px;color:var(--text3);flex:1;font-family:var(--mono);line-height:1.3}
+.wp-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:1px 3px;border-radius:3px;transition:color .15s;line-height:1}
+.wp-del:hover{color:var(--red)}
+
+/* LEGS */
+.leg-row{padding:5px 0;border-bottom:1px solid var(--border);font-size:11px}
+.leg-row:last-child{border-bottom:none}
+.leg-title{font-weight:500;margin-bottom:2px;font-size:11px}
+.leg-data{display:flex;flex-wrap:wrap;gap:6px}
+.leg-data span{color:var(--text2);font-size:10px}
+.leg-data span b{color:var(--text);font-weight:500;font-family:var(--mono)}
+
+/* STATS */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.stat-card{background:var(--bg3);border-radius:var(--r);padding:7px 9px;border:1px solid var(--border)}
+.stat-card .sl{font-size:9px;color:var(--text3);margin-bottom:1px}
+.stat-card .sv{font-size:14px;font-weight:700;font-family:var(--mono)}
+.status-bar{margin-top:6px;padding:5px 9px;border-radius:var(--r);font-size:11px;font-weight:500;font-family:var(--mono)}
+.ok{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:var(--green)}
+.warn{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:var(--red)}
+.empty{font-size:11px;color:var(--text3);padding:6px 0;font-family:var(--mono)}
+
+/* TOGGLES */
+.tog-row{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.tog{position:relative;width:28px;height:16px;cursor:pointer;display:inline-block}
+.tog input{opacity:0;width:0;height:0}
+.tog-sl{position:absolute;inset:0;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;transition:.2s}
+.tog-sl:before{content:'';position:absolute;width:10px;height:10px;left:2px;top:2px;background:var(--text3);border-radius:50%;transition:.2s}
+.tog input:checked+.tog-sl{background:rgba(232,160,32,.2);border-color:var(--vor)}
+.tog input:checked+.tog-sl:before{transform:translateX(12px);background:var(--vor)}
+.tog.t2 input:checked+.tog-sl{background:rgba(167,139,250,.2);border-color:var(--apt)}
+.tog.t2 input:checked+.tog-sl:before{background:var(--apt)}
+.tog-label{font-size:11px;color:var(--text2)}
+
+/* BTNS */
+.save-row{display:flex;gap:5px;margin-top:7px}
+.save-row input{flex:1;font-size:11px;font-family:var(--mono);padding:4px 7px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);outline:none}
+.btn{padding:5px 11px;font-size:11px;font-family:var(--font);font-weight:500;background:var(--accent);color:#fff;border:none;border-radius:var(--r);cursor:pointer;transition:background .15s;white-space:nowrap}
+.btn:hover{background:#5a9ff2}
+.btn-sm{padding:2px 8px;font-size:10px;font-family:var(--mono);background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:5px;cursor:pointer;transition:all .15s}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+.btn-del-sm:hover{border-color:var(--red);color:var(--red)}
+.plan-item{display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid var(--border)}
+.plan-item:last-child{border-bottom:none}
+.plan-name{flex:1;font-size:11px;font-family:var(--mono);color:var(--text2)}
+
+/* ── VOR RADIALI ── */
+.vor-select-row{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.vor-select-row label{font-size:11px;color:var(--text2);white-space:nowrap}
+.vor-select-row select{flex:1;font-size:11px;font-family:var(--mono);padding:4px 7px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);outline:none;cursor:pointer}
+.vor-select-row select:focus{border-color:var(--vor)}
+.radiali-table{width:100%;border-collapse:collapse;font-size:11px}
+.radiali-table th{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:500;padding:3px 5px;text-align:left;border-bottom:1px solid var(--border)}
+.radiali-table td{padding:5px 5px;border-bottom:1px solid var(--border);vertical-align:middle}
+.radiali-table tr:last-child td{border-bottom:none}
+.rad-wp{font-weight:500;font-size:11px}
+.rad-val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--vor)}
+.rad-dist{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.vor-info-card{background:var(--bg3);border:1px solid rgba(232,160,32,.25);border-radius:var(--r);padding:8px 11px;margin-bottom:10px}
+.vor-info-card .vi-name{font-size:14px;font-weight:700;color:var(--vor);font-family:var(--mono)}
+.vor-info-card .vi-full{font-size:11px;color:var(--text2);margin-bottom:2px}
+.vor-info-card .vi-freq{font-size:13px;font-family:var(--mono);color:var(--accent)}
+.vor-line{position:absolute;pointer-events:none;z-index:450}
+
+/* ── FREQUENZE AUTO ── */
+.freq-table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}
+.freq-table th{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:3px 5px;text-align:left;border-bottom:1px solid var(--border);font-weight:500}
+.freq-table td{padding:4px 5px;border-bottom:1px solid var(--border);vertical-align:middle}
+.freq-table tr:last-child td{border-bottom:none}
+.freq-table td:nth-child(2){font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent)}
+.ftb{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-family:var(--mono);font-weight:500}
+.fc{background:rgba(61,142,240,.15);border:1px solid rgba(61,142,240,.25);color:#3d8ef0}
+.fa{background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.25);color:#a78bfa}
+.fi{background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.25);color:#34d399}
+.ft{background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.25);color:#f87171}
+.fn{background:rgba(232,160,32,.15);border:1px solid rgba(232,160,32,.25);color:#e8a020}
+.freq-hint{font-size:10px;color:var(--text3);font-family:var(--mono);line-height:1.5;margin-bottom:8px}
+
+/* ── METAR ── */
+.icao-row{display:flex;gap:5px;margin-bottom:7px}
+.icao-row input{flex:1;font-size:12px;font-family:var(--mono);padding:4px 7px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);outline:none;text-transform:uppercase}
+.icao-row input:focus{border-color:var(--accent)}
+.metar-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 11px;margin-bottom:6px;position:relative}
+.metar-icao{font-size:13px;font-weight:700;color:var(--apt);font-family:var(--mono);margin-bottom:2px}
+.metar-raw{font-size:9px;color:var(--text3);font-family:var(--mono);word-break:break-all;margin-bottom:6px;line-height:1.5}
+.mgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:5px}
+.mgrid .ml{font-size:9px;color:var(--text3)}
+.mgrid .mv{font-size:11px;font-weight:500;font-family:var(--mono);color:var(--text)}
+.wxb{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;font-family:var(--mono);margin-bottom:5px}
+.vmc{background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);color:var(--green)}
+.mvfr{background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);color:var(--amber)}
+.imc{background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.3);color:var(--red)}
+.taf-block{margin-top:5px;padding-top:5px;border-top:1px solid var(--border)}
+.taf-title{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+.taf-raw{font-size:9px;color:var(--text2);font-family:var(--mono);word-break:break-all;line-height:1.6}
+.metar-del{position:absolute;top:7px;right:7px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px}
+.metar-del:hover{color:var(--red)}
+.loading{font-size:11px;color:var(--text3);font-family:var(--mono);padding:6px 0;display:flex;align-items:center;gap:5px}
+.spin{animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.merr{font-size:11px;font-family:var(--mono);padding:7px 10px;border-radius:var(--r);background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);color:var(--red);margin-bottom:6px;line-height:1.5}
+.mhint{font-size:10px;color:var(--text3);font-family:var(--mono);line-height:1.5;margin-bottom:7px}
+
+/* ── NOTAM ── */
+.notam-link{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);text-decoration:none;color:var(--text);margin-bottom:8px;transition:border-color .15s}
+.notam-link:hover{border-color:var(--accent)}
+.notam-link .lt{font-size:12px;font-weight:500}
+.notam-link .ls{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.notam-paste{width:100%;min-height:85px;font-size:10px;font-family:var(--mono);padding:7px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);resize:vertical;outline:none;line-height:1.6}
+.notam-paste:focus{border-color:var(--accent)}
+.notam-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;margin-bottom:6px}
+.notam-item.nw{border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.04)}
+.notam-item.ni{border-color:rgba(61,142,240,.25);background:rgba(61,142,240,.04)}
+.notam-hdr{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
+.nid{font-size:11px;font-weight:700;color:var(--amber);font-family:var(--mono)}
+.nloc{font-size:10px;color:var(--apt);font-family:var(--mono)}
+.ntype{font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,.07);color:var(--text2);font-family:var(--mono)}
+.nbody{color:var(--text2);line-height:1.6;white-space:pre-wrap;word-break:break-all;font-family:var(--mono);font-size:10px}
+.ntimes{font-size:9px;color:var(--text3);margin-top:3px;font-family:var(--mono)}
+
+/* POPUPS */
+.vp .leaflet-popup-content-wrapper,.ap .leaflet-popup-content-wrapper{background:#13161d;border:1px solid rgba(255,255,255,0.14);border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5);color:#e8eaf0}
+.vp .leaflet-popup-tip,.ap .leaflet-popup-tip{background:#13161d}
+.vp .leaflet-popup-content,.ap .leaflet-popup-content{margin:10px 13px;font-family:'JetBrains Mono',monospace;font-size:12px}
+.pb{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:500;margin-bottom:5px}
+.pn{font-size:15px;font-weight:700;color:#e8eaf0;margin-bottom:2px}
+.ps{color:#8b90a0;margin-bottom:5px;font-size:11px}
+.pa{display:block;width:100%;padding:5px 0;margin-top:5px;text-align:center;border:none;border-radius:5px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;transition:all .15s}
+.pa.bl{background:rgba(61,142,240,.15);border:1px solid rgba(61,142,240,.35);color:#3d8ef0}
+.pa.bl:hover{background:rgba(61,142,240,.28)}
+.pa.pu{background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.35);color:#a78bfa}
+.pa.pu:hover{background:rgba(167,139,250,.28)}
+.pa.am{background:rgba(232,160,32,.15);border:1px solid rgba(232,160,32,.35);color:#e8a020}
+.pa.am:hover{background:rgba(232,160,32,.28)}
+
+.map-badge{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(13,15,20,.88);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.13);border-radius:20px;padding:5px 14px;font-size:10px;color:#8b90a0;pointer-events:none;white-space:nowrap;font-family:'JetBrains Mono',monospace;z-index:999}
+.leaflet-container{background:#1a1e28}
+.leaflet-control-zoom a{background:#13161d!important;color:#e8eaf0!important;border-color:rgba(255,255,255,0.13)!important}
+.leaflet-control-zoom a:hover{background:#1a1e28!important}
+.leaflet-control-attribution{background:rgba(13,15,20,.7)!important;color:#555a6a!important}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="sidebar">
+  <div class="logo">
+    <div class="logo-icon">✈</div>
+    <div><div class="logo-text">VFR Planner</div><div class="logo-sub">Nord Italia</div></div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('plan')">Piano</div>
+    <div class="tab" onclick="switchTab('vor')">VOR/RAD</div>
+    <div class="tab" onclick="switchTab('freq')">Freq.</div>
+    <div class="tab" onclick="switchTab('wx')">METAR</div>
+    <div class="tab" onclick="switchTab('notam')">NOTAM</div>
+  </div>
+
+  <!-- ══════════ PIANO ══════════ -->
+  <div class="tab-panel active" id="tab-plan">
+    <div class="sec">
+      <div class="sec-title">Parametri aereo</div>
+      <div class="param-row"><label>TAS (kt)</label><input type="number" id="tas" value="100" min="50" max="300"></div>
+      <div class="param-row"><label>Consumo (l/h)</label><input type="number" id="fph" value="30" min="5" max="200"></div>
+      <div class="param-row"><label>Carburante a bordo (l)</label><input type="number" id="fob" value="100" min="0" max="500"></div>
+      <div class="param-row"><label>Riserva (l)</label><input type="number" id="fres" value="15" min="0" max="100"></div>
+      <div class="param-row"><label>Vento direzione (°)</label><input type="number" id="wdir" value="0" min="0" max="359"></div>
+      <div class="param-row"><label>Vento velocità (kt)</label><input type="number" id="wspd" value="0" min="0" max="100"></div>
+      <div class="param-row"><label>Variazione magnetica (°)</label><input type="number" id="mvar" value="2" min="-30" max="30"></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Overlay mappa</div>
+      <div class="tog-row"><label class="tog"><input type="checkbox" id="tog-vor" checked onchange="toggleVORs()"><span class="tog-sl"></span></label><span class="tog-label">VOR / VOR-DME / NDB</span></div>
+      <div class="tog-row"><label class="tog t2"><input type="checkbox" id="tog-apt" checked onchange="toggleApts()"><span class="tog-sl"></span></label><span class="tog-label">Aeroporti</span></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Waypoint <span style="color:#555a6a;font-size:9px;text-transform:none;letter-spacing:0">(click mappa)</span></div>
+      <div id="wplist"><div class="empty">// nessun waypoint</div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Leg per leg</div>
+      <div id="leglist"><div class="empty">// servono ≥ 2 waypoint</div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Riepilogo volo</div>
+      <div id="summary"><div class="empty">// aggiungi waypoint</div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Piani salvati</div>
+      <div id="savedplans"><div class="empty">// nessun piano salvato</div></div>
+      <div class="save-row">
+        <input id="pname" placeholder="nome piano...">
+        <button class="btn" onclick="savePlan()">Salva</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ VOR / RADIALI ══════════ -->
+  <div class="tab-panel" id="tab-vor">
+    <div class="sec">
+      <div class="sec-title">Seleziona VOR di riferimento</div>
+      <div class="vor-select-row">
+        <label>VOR</label>
+        <select id="vor-sel" onchange="renderRadiali()">
+          <option value="">— scegli VOR —</option>
+        </select>
+      </div>
+      <div id="vor-info-card"></div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:6px;line-height:1.5">
+        QDR = radiale magnetica dal VOR verso il waypoint.<br>
+        La linea magenta mostra la direzione sulla mappa.
+      </div>
+      <div id="radiali-wrap"><div class="empty">// aggiungi waypoint e scegli un VOR</div></div>
+    </div>
+  </div>
+
+  <!-- ══════════ FREQUENZE ══════════ -->
+  <div class="tab-panel" id="tab-freq">
+    <div class="sec">
+      <div class="sec-title">Frequenze automatiche in rotta</div>
+      <div class="freq-hint">Calcolate in base ai waypoint della rotta.<br>Aggiungi waypoint nel tab Piano per vederle.</div>
+      <div id="freq-auto"><div class="empty">// nessun waypoint nella rotta</div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Frequenze VOR in rotta</div>
+      <div id="freq-vor-auto"><div class="empty">// nessun VOR nella rotta</div></div>
+    </div>
+  </div>
+
+  <!-- ══════════ METAR ══════════ -->
+  <div class="tab-panel" id="tab-wx">
+    <div class="sec">
+      <div class="sec-title">Ricerca METAR/TAF</div>
+      <div class="icao-row">
+        <input id="icao-input" placeholder="es. LIML" maxlength="4">
+        <button class="btn" onclick="fetchMetar()">Cerca</button>
+      </div>
+      <div class="mhint">Codice ICAO + Invio o Cerca.<br>Oppure click aeroporto sulla mappa → Carica METAR.<br><span style="color:var(--amber)">⚠ Richiede connessione internet.</span></div>
+    </div>
+    <div class="sec" style="flex:1">
+      <div class="sec-title">Stazioni</div>
+      <div id="metar-list"><div class="empty">// nessuna stazione caricata</div></div>
+    </div>
+  </div>
+
+  <!-- ══════════ NOTAM ══════════ -->
+  <div class="tab-panel" id="tab-notam">
+    <div class="sec">
+      <div class="sec-title">Portale NOTAM</div>
+      <a class="notam-link" href="https://www.deskaeronautico.it/mappa/" target="_blank">
+        <span style="font-size:20px">🗺</span>
+        <div><div class="lt">Desk Aeronautico</div><div class="ls">deskaeronautico.it/mappa</div></div>
+      </a>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Incolla NOTAM</div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:6px;line-height:1.5">Copia dal portale e incolla qui per analizzarli.</div>
+      <textarea class="notam-paste" id="notam-input" placeholder="A1234/24 NOTAMN&#10;Q) LIME/QRTCA/IV/BO/W/000/065&#10;A) LIME B) 2401010800 C) 2401011800&#10;E) AREA RISERVATA..."></textarea>
+      <button class="btn" style="width:100%;margin-top:6px" onclick="parseNotam()">Analizza NOTAM</button>
+    </div>
+    <div class="sec" style="flex:1">
+      <div class="sec-title">NOTAM analizzati</div>
+      <div id="notam-list"><div class="empty">// nessun NOTAM analizzato</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="map-wrap">
+  <div id="map"></div>
+  <div class="map-badge">✦ click mappa per waypoint · click VOR/aeroporto per dettagli</div>
+</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════════
+// DATABASE NAVAIDS
+// ══════════════════════════════════════════════════════════════════
+const NAVAIDS=[
+  // Nord Italia
+  ["BGY","Bergamo","D",112.50,45.6667,9.7000,"IT"],
+  ["BLQ","Bologna","D",114.50,44.5354,11.2887,"IT"],
+  ["CLN","Calino","D",115.80,45.5500,10.0167,"IT"],
+  ["CRS","Corsico","N",330.0,45.4333,9.1000,"IT"],
+  ["FEL","Feltre","D",115.40,46.0167,11.9000,"IT"],
+  ["FRL","Forlì","D",114.40,44.1944,12.0703,"IT"],
+  ["GEN","Genova","D",113.80,44.4133,8.8375,"IT"],
+  ["LIM","Lima","D",112.50,44.0833,7.7667,"IT"],
+  ["LNV","Linate","D",114.20,45.4453,9.2764,"IT"],
+  ["MOD","Modena","N",415.0,44.6333,10.7833,"IT"],
+  ["MXP","Malpensa","D",116.20,45.6250,8.7311,"IT"],
+  ["ORS","Orsara","D",114.50,41.2833,15.2000,"IT"],
+  ["PAD","Padova","D",115.70,45.3500,11.8333,"IT"],
+  ["PRS","Pisa","D",114.60,43.6836,10.3928,"IT"],
+  ["RIM","Rimini","D",115.20,44.0167,12.6167,"IT"],
+  ["RON","Ronchi","D",116.00,45.8167,13.4833,"IT"],
+  ["SET","Settimo","D",112.20,45.1333,7.6500,"IT"],
+  ["SRN","Saronno","D",115.00,45.6333,9.0333,"IT"],
+  ["TRE","Trento","D",115.00,46.0167,11.1167,"IT"],
+  ["TRS","Trieste","D",113.40,45.6500,13.7667,"IT"],
+  ["TUF","Torino","D",116.00,45.0833,7.6500,"IT"],
+  ["TVE","Treviso","D",115.30,45.6500,12.1833,"IT"],
+  ["UDI","Udine","D",114.10,46.0333,13.1833,"IT"],
+  ["VEN","Venezia","D",115.50,45.5053,12.3519,"IT"],
+  ["VER","Verona","D",116.60,45.3833,10.9333,"IT"],
+  ["VIC","Vicenza","D",113.60,45.5667,11.5333,"IT"],
+  // Centro/Sud per completezza
+  ["ANC","Ancona","D",114.30,43.6167,13.3667,"IT"],
+  ["BRI","Brindisi","D",114.70,40.6567,17.9467,"IT"],
+  ["CAG","Cagliari","D",116.50,39.2517,9.0583,"IT"],
+  ["CTA","Catania","D",116.50,37.4667,15.0500,"IT"],
+  ["ELB","Elba","D",113.50,42.7667,10.4000,"IT"],
+  ["FIR","Firenze","D",116.30,43.8097,11.2047,"IT"],
+  ["LAM","Lampedusa","D",113.70,35.4997,12.6183,"IT"],
+  ["LAT","Latina","D",115.30,41.5500,12.9167,"IT"],
+  ["NAP","Napoli","D",114.80,40.8800,14.2900,"IT"],
+  ["OLB","Olbia","D",113.10,40.9000,9.5167,"IT"],
+  ["PAL","Palermo","D",114.10,38.1756,13.0914,"IT"],
+  ["PES","Pescara","D",114.00,42.4167,14.1833,"IT"],
+  ["POM","Pomezia","D",114.50,41.6667,12.5000,"IT"],
+  ["ROM","Roma","D",114.90,41.6500,12.2333,"IT"],
+  ["TAR","Taranto","D",112.90,40.4667,17.2000,"IT"],
+  // Confinanti
+  ["AMB","Ambrì","D",114.50,46.5147,8.8917,"CH"],
+  ["GVA","Ginevra","D",116.15,46.2583,6.1333,"CH"],
+  ["KLO","Kloten","D",112.20,47.4808,8.5483,"CH"],
+  ["SIO","Sion","D",115.10,46.2167,7.3667,"CH"],
+  ["ZUE","Zurigo","D",116.90,47.5922,8.5481,"CH"],
+  ["GRZ","Graz","D",116.90,46.9983,15.4400,"AT"],
+  ["INN","Innsbruck","D",112.80,47.2597,11.3439,"AT"],
+  ["KFT","Klagenfurt","D",112.30,46.6428,14.3328,"AT"],
+  ["LNZ","Linz","D",112.40,48.2331,14.1875,"AT"],
+  ["SBZ","Salisburgo","D",113.80,47.7933,13.0043,"AT"],
+  ["VIE","Vienna","D",113.10,48.1103,16.5697,"AT"],
+  ["LJU","Lubiana","D",112.70,46.2236,14.4576,"SI"],
+  ["ZAG","Zagabria","D",115.30,45.7429,16.0688,"HR"],
+  ["NIC","Nizza","D",113.50,43.6583,7.2167,"FR"],
+  ["MLA","Malta","D",114.00,35.8578,14.4772,"MT"],
+];
+
+// ══════════════════════════════════════════════════════════════════
+// DATABASE AEROPORTI
+// ══════════════════════════════════════════════════════════════════
+const AIRPORTS=[
+  ["LIML","Linate","Milano",45.4453,9.2764],
+  ["LIMC","Malpensa","Milano",45.6306,8.7281],
+  ["LIME","Orio al Serio","Bergamo",45.6739,9.7042],
+  ["LIPX","Villafranca","Verona",45.3958,10.8886],
+  ["LIPB","Bolzano","Bolzano",46.4603,11.3264],
+  ["LIPH","Treviso","Treviso",45.6483,12.1944],
+  ["LIPZ","Marco Polo","Venezia",45.5053,12.3519],
+  ["LIPU","Padova","Padova",45.3958,11.8472],
+  ["LIPK","Forlì","Forlì",44.1944,12.0703],
+  ["LIPY","Falconara","Ancona",43.6164,13.3622],
+  ["LIPE","Borgo Panigale","Bologna",44.5354,11.2887],
+  ["LIPQ","Ronchi","Trieste",45.8275,13.4722],
+  ["LIPR","Miramare","Rimini",44.0203,12.6117],
+  ["LIRZ","Perugia","Perugia",43.0958,12.5133],
+  ["LIRF","Fiumicino","Roma",41.8003,12.2389],
+  ["LIRA","Ciampino","Roma",41.7994,12.5947],
+  ["LIBP","Pescara","Pescara",42.4317,14.1811],
+  ["LIRN","Capodichino","Napoli",40.8860,14.2908],
+  ["LICC","Fontanarossa","Catania",37.4667,15.0664],
+  ["LICJ","Punta Raisi","Palermo",38.1756,13.0914],
+  ["LIEO","Costa Smeralda","Olbia",40.8989,9.5178],
+  ["LIEE","Elmas","Cagliari",39.2514,9.0542],
+  ["LIRQ","Peretola","Firenze",43.8100,11.2050],
+  ["LIMP","Parma","Parma",44.8244,10.2964],
+  ["LSZH","Zurigo","Zurigo",47.4647,8.5492],
+  ["LSGG","Ginevra","Ginevra",46.2381,6.1089],
+  ["LOWW","Schwechat","Vienna",48.1103,16.5697],
+  ["LOWI","Innsbruck","Innsbruck",47.2597,11.3439],
+  ["LOWG","Graz","Graz",46.9911,15.4397],
+  ["LJLJ","Brnik","Lubiana",46.2236,14.4576],
+  ["LDZA","Pleso","Zagabria",45.7429,16.0688],
+  ["LFMN","Nice","Nizza",43.6653,7.2150],
+  ["LMML","Malta","Malta",35.8575,14.4775],
+];
+
+// ══════════════════════════════════════════════════════════════════
+// DATABASE FREQUENZE (Nord Italia + principali)
+// [icao_area, nome, freq, tipo]
+// tipo: COM=FIR/Radar, TWR=Torre, APP=Avvicinamento, INFO=AFIS, ATIS=ATIS, NAV=VOR freq
+// ══════════════════════════════════════════════════════════════════
+const FREQ_DB={
+  // FIR / Radar / ACC
+  "FIR_MILAN":  [{n:"Milano ACC",      f:"127.875",t:"COM"},{n:"Milano ACC",f:"131.725",t:"COM"},{n:"Milano FIS",f:"130.825",t:"COM"}],
+  "FIR_PADOVA": [{n:"Padova ACC",      f:"120.425",t:"COM"},{n:"Padova ACC",f:"124.325",t:"COM"},{n:"Padova FIS",f:"124.175",t:"COM"}],
+  "FIR_GENOVA": [{n:"Genova ACC",      f:"127.500",t:"COM"},{n:"Genova FIS",f:"124.600",t:"COM"}],
+  "FIR_ROMA":   [{n:"Roma ACC",        f:"124.900",t:"COM"},{n:"Roma ACC",  f:"132.675",t:"COM"}],
+  // Aeroporti — TWR / APP / ATIS
+  "LIML": [{n:"Linate TWR",    f:"118.100",t:"TWR"},{n:"Linate APP",f:"119.600",t:"APP"},{n:"Linate ATIS",f:"123.875",t:"ATIS"}],
+  "LIMC": [{n:"Malpensa TWR",  f:"119.725",t:"TWR"},{n:"Malpensa APP",f:"120.625",t:"APP"},{n:"Malpensa ATIS",f:"126.750",t:"ATIS"}],
+  "LIME": [{n:"Orio TWR",      f:"119.300",t:"TWR"},{n:"Orio APP",f:"120.975",t:"APP"},{n:"Orio ATIS",f:"121.900",t:"ATIS"}],
+  "LIPX": [{n:"Verona TWR",    f:"118.050",t:"TWR"},{n:"Verona APP",f:"119.750",t:"APP"}],
+  "LIPZ": [{n:"Venezia TWR",   f:"118.050",t:"TWR"},{n:"Venezia APP",f:"119.100",t:"APP"},{n:"Venezia ATIS",f:"127.500",t:"ATIS"}],
+  "LIPH": [{n:"Treviso TWR",   f:"118.375",t:"TWR"},{n:"Treviso APP",f:"119.450",t:"APP"}],
+  "LIPU": [{n:"Padova TWR",    f:"118.100",t:"TWR"},{n:"Padova INFO",f:"118.100",t:"INFO"}],
+  "LIPE": [{n:"Bologna TWR",   f:"118.300",t:"TWR"},{n:"Bologna APP",f:"119.700",t:"APP"},{n:"Bologna ATIS",f:"121.700",t:"ATIS"}],
+  "LIMP": [{n:"Parma TWR",     f:"118.200",t:"TWR"},{n:"Parma INFO",f:"130.450",t:"INFO"}],
+  "LIPK": [{n:"Forlì TWR",     f:"119.750",t:"TWR"},{n:"Forlì APP",f:"119.750",t:"APP"}],
+  "LIPR": [{n:"Rimini TWR",    f:"131.225",t:"TWR"},{n:"Rimini APP",f:"123.500",t:"APP"},{n:"Rimini ATIS",f:"127.900",t:"ATIS"}],
+  "LIPY": [{n:"Ancona TWR",    f:"118.200",t:"TWR"},{n:"Ancona APP",f:"120.600",t:"APP"}],
+  "LIPQ": [{n:"Trieste TWR",   f:"118.000",t:"TWR"},{n:"Trieste APP",f:"119.600",t:"APP"}],
+  "LIPB": [{n:"Bolzano TWR",   f:"118.100",t:"TWR"},{n:"Bolzano INFO",f:"123.500",t:"INFO"}],
+  "LIRQ": [{n:"Firenze TWR",   f:"119.350",t:"TWR"},{n:"Firenze APP",f:"120.050",t:"APP"}],
+  "LIRF": [{n:"Roma TWR",      f:"119.200",t:"TWR"},{n:"Roma APP",f:"119.900",t:"APP"},{n:"Roma ATIS",f:"121.800",t:"ATIS"}],
+  "LIRA": [{n:"Ciampino TWR",  f:"118.150",t:"TWR"},{n:"Ciampino APP",f:"120.775",t:"APP"}],
+  "LIRN": [{n:"Napoli TWR",    f:"118.000",t:"TWR"},{n:"Napoli APP",f:"120.175",t:"APP"}],
+  "LSZH": [{n:"Zurigo TWR",    f:"118.100",t:"TWR"},{n:"Zurigo APP",f:"118.000",t:"APP"}],
+  "LOWW": [{n:"Vienna TWR",    f:"119.400",t:"TWR"},{n:"Vienna APP",f:"121.200",t:"APP"}],
+  "LOWI": [{n:"Innsbruck TWR", f:"119.700",t:"TWR"},{n:"Innsbruck APP",f:"119.175",t:"APP"}],
+  "LJLJ": [{n:"Lubiana TWR",   f:"118.000",t:"TWR"},{n:"Lubiana APP",f:"119.000",t:"APP"}],
+  // Emergenza / universali
+  "_UNIV": [{n:"Emergenza",f:"121.500",t:"COM"},{n:"VFR Milano",f:"130.825",t:"COM"}],
+};
+
+// Bounding boxes FIR approssimate
+const FIR_ZONES=[
+  {id:"FIR_MILAN", name:"FIR Milano",  latMin:43.5,latMax:47.5,lngMin:6.5,lngMax:11.5},
+  {id:"FIR_PADOVA",name:"FIR Padova", latMin:43.5,latMax:47.5,lngMin:11.5,lngMax:14.5},
+  {id:"FIR_GENOVA",name:"FIR Genova", latMin:42.5,latMax:45.5,lngMin:6.5,lngMax:9.5},
+  {id:"FIR_ROMA",  name:"FIR Roma",   latMin:40.0,latMax:43.5,lngMin:9.5,lngMax:15.0},
+];
+
+// ══════════════════════════════════════════════════════════════════
+// STATO
+// ══════════════════════════════════════════════════════════════════
+let waypoints=[],map,markersLayer=[],polylineLayer=null;
+let vorMarkers=[],aptMarkers=[],vorVisible=true,aptVisible=true,metarData={};
+let vorLineLayer=null;
+
+// ══════════════════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════════════════
+function switchTab(name){
+  ['plan','vor','freq','wx','notam'].forEach((t,i)=>{
+    document.querySelectorAll('.tab')[i].classList.toggle('active',t===name);
+    document.getElementById('tab-'+t).classList.toggle('active',t===name);
+  });
+  if(name==='vor'){populateVorSelect();renderRadiali();}
+  if(name==='freq') renderFreqAuto();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MAPPA
+// ══════════════════════════════════════════════════════════════════
+function initMap(){
+  map=L.map('map').setView([44.8,11.0],8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:17}).addTo(map);
+  map.on('click',e=>{
+    waypoints.push({lat:e.latlng.lat,lng:e.latlng.lng,name:'WP'+(waypoints.length+1),isVor:false,isApt:false,vorFreq:null});
+    renderAll();
+  });
+  renderVORs();renderApts();
+}
+
+function vorSVG(type){
+  if(type==='N') return`<svg width="18" height="18" viewBox="0 0 18 18"><polygon points="9,1 17,9 9,17 1,9" fill="none" stroke="#e8a020" stroke-width="1.8"/><circle cx="9" cy="9" r="2" fill="#e8a020"/></svg>`;
+  return`<svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,2 18,6 18,14 10,18 2,14 2,6" fill="none" stroke="#e8a020" stroke-width="1.8"/>${type==='D'?'<circle cx="10" cy="10" r="3.5" fill="none" stroke="#e8a020" stroke-width="1.2"/>':''}<circle cx="10" cy="10" r="1.8" fill="#e8a020"/></svg>`;
+}
+function mkVorIcon(t){const sz=t==='N'?18:20;return L.divIcon({className:'',html:`<div style="cursor:pointer;filter:drop-shadow(0 0 3px rgba(232,160,32,.45))">${vorSVG(t)}</div>`,iconAnchor:[sz/2,sz/2],iconSize:[sz,sz]});}
+
+function renderVORs(){
+  vorMarkers.forEach(m=>map.removeLayer(m));vorMarkers=[];
+  if(!vorVisible) return;
+  NAVAIDS.forEach(v=>{
+    const[id,name,type,freq,lat,lng,country]=v;
+    const tl=type==='N'?'NDB':type==='D'?'VOR-DME':'VOR';
+    const fu=type==='N'?'kHz':'MHz';
+    const m=L.marker([lat,lng],{icon:mkVorIcon(type),zIndexOffset:-200}).addTo(map);
+    m.bindPopup(`<div>
+      <span class="pb" style="background:rgba(232,160,32,.15);border:1px solid rgba(232,160,32,.4);color:#e8a020">${tl}</span>
+      <div class="pn">${id}</div><div class="ps">${name} · ${country}</div>
+      <div style="color:#e8eaf0;margin-bottom:4px"><b style="color:#e8a020">${freq}</b> ${fu}</div>
+      <button class="pa bl" onclick="addVorWp('${id}',${lat},${lng},${freq})">+ Aggiungi come waypoint</button>
+      <button class="pa am" onclick="setVorRef('${id}')">📡 Usa come VOR riferimento</button>
+    </div>`,{className:'vp',closeButton:true,maxWidth:210});
+    vorMarkers.push(m);
+  });
+}
+function toggleVORs(){vorVisible=document.getElementById('tog-vor').checked;renderVORs();}
+
+function mkAptIcon(){return L.divIcon({className:'',html:`<div style="width:10px;height:10px;border-radius:50%;background:#a78bfa;border:2px solid rgba(167,139,250,.5);box-shadow:0 0 5px rgba(167,139,250,.4);cursor:pointer"></div>`,iconAnchor:[5,5],iconSize:[10,10]});}
+function renderApts(){
+  aptMarkers.forEach(m=>map.removeLayer(m));aptMarkers=[];
+  if(!aptVisible) return;
+  AIRPORTS.forEach(a=>{
+    const[icao,name,city,lat,lng]=a;
+    const m=L.marker([lat,lng],{icon:mkAptIcon(),zIndexOffset:-100}).addTo(map);
+    m.bindPopup(`<div>
+      <span class="pb" style="background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.4);color:#a78bfa">Aeroporto</span>
+      <div class="pn">${icao}</div><div class="ps">${name} · ${city}</div>
+      <button class="pa bl" onclick="addAptWp('${icao}',${lat},${lng})">+ Aggiungi come waypoint</button>
+      <button class="pa pu" onclick="loadMetarFromMap('${icao}')">☁ Carica METAR/TAF</button>
+    </div>`,{className:'ap',closeButton:true,maxWidth:210});
+    aptMarkers.push(m);
+  });
+}
+function toggleApts(){aptVisible=document.getElementById('tog-apt').checked;renderApts();}
+
+function addVorWp(id,lat,lng,freq){map.closePopup();waypoints.push({lat,lng,name:id,isVor:true,isApt:false,vorFreq:freq});renderAll();}
+function addAptWp(icao,lat,lng){map.closePopup();waypoints.push({lat,lng,name:icao,isVor:false,isApt:true,vorFreq:null});renderAll();}
+function loadMetarFromMap(icao){map.closePopup();switchTab('wx');document.getElementById('icao-input').value=icao;fetchMetar();}
+function setVorRef(id){map.closePopup();switchTab('vor');document.getElementById('vor-sel').value=id;renderRadiali();}
+
+function mkWpIcon(i,isVor,isApt){
+  const color=isVor?'#e8a020':isApt?'#a78bfa':'#3d8ef0';
+  const glow=isVor?'rgba(232,160,32,.5)':isApt?'rgba(167,139,250,.5)':'rgba(61,142,240,.5)';
+  return L.divIcon({className:'',html:`<div style="width:24px;height:24px;border-radius:50%;background:${color};color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.9);box-shadow:0 2px 8px ${glow};font-family:monospace;cursor:pointer">${i+1}</div>`,iconAnchor:[12,12],iconSize:[24,24]});
+}
+
+function renderAll(){
+  markersLayer.forEach(m=>map.removeLayer(m));markersLayer=[];
+  waypoints.forEach((wp,i)=>{
+    const m=L.marker([wp.lat,wp.lng],{icon:mkWpIcon(i,wp.isVor,wp.isApt),draggable:true}).addTo(map);
+    m.on('dragend',ev=>{waypoints[i].lat=ev.target.getLatLng().lat;waypoints[i].lng=ev.target.getLatLng().lng;waypoints[i].isVor=false;waypoints[i].isApt=false;renderAll();});
+    markersLayer.push(m);
+  });
+  if(polylineLayer) map.removeLayer(polylineLayer);
+  if(waypoints.length>=2) polylineLayer=L.polyline(waypoints.map(w=>[w.lat,w.lng]),{color:'#3d8ef0',weight:2,dashArray:'8 5',opacity:.8}).addTo(map);
+  renderWpList();renderLegs();renderSummary();
+  renderRadiali();renderFreqAuto();
+  drawVorLines();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CALCOLI NAV
+// ══════════════════════════════════════════════════════════════════
+const toRad=d=>d*Math.PI/180, toDeg=r=>r*180/Math.PI;
+
+function nmBetween(a,b){
+  const R=3440.065,la1=toRad(a.lat),la2=toRad(b.lat),dLa=la2-la1,dLo=toRad(b.lng-a.lng);
+  return 2*R*Math.asin(Math.sqrt(Math.sin(dLa/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLo/2)**2));
+}
+function bearingTo(from,to){
+  const la1=toRad(from.lat),la2=toRad(to.lat),dLo=toRad(to.lng-from.lng);
+  const y=Math.sin(dLo)*Math.cos(la2),x=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(dLo);
+  return(toDeg(Math.atan2(y,x))+360)%360;
+}
+// QDR = radiale magnetica dal VOR verso il punto (bearing VOR→punto + 180 no, è già la radiale)
+// QDR = bearing from VOR to waypoint (la radiale è proprio questa — la direzione dal VOR al punto)
+function qdr(vor,wp,magVar){
+  const bearing=bearingTo(vor,wp);
+  return(bearing-magVar+360)%360;
+}
+
+function calcLeg(a,b){
+  const dist=nmBetween(a,b);
+  const tc=bearingTo(a,b);
+  const tas=+document.getElementById('tas').value||100,wd=+document.getElementById('wdir').value||0;
+  const ws=+document.getElementById('wspd').value||0,mv=+document.getElementById('mvar').value||0;
+  const wca=Math.asin(Math.min(1,Math.max(-1,(ws/tas)*Math.sin(toRad(wd)-toRad(tc)+Math.PI))));
+  const gs=Math.max(1,tas*Math.cos(wca)+ws*Math.cos(toRad(wd-tc)));
+  const fph=+document.getElementById('fph').value||30,th=dist/gs;
+  return{dist,tc,hdgMag:(tc+toDeg(wca)-mv+360)%360,gs,th,fuel:th*fph};
+}
+const fmt=h=>{const t=Math.round(h*60);return`${Math.floor(t/60)}h${String(t%60).padStart(2,'0')}m`;};
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER SIDEBAR — PIANO
+// ══════════════════════════════════════════════════════════════════
+function renderWpList(){
+  const el=document.getElementById('wplist');
+  if(!waypoints.length){el.innerHTML='<div class="empty">// nessun waypoint</div>';return;}
+  el.innerHTML=waypoints.map((wp,i)=>`<div class="wp-item">
+    <div class="wp-num${wp.isVor?' v':wp.isApt?' a':''}">${i+1}</div>
+    <input class="wp-name-in" value="${wp.name}" onchange="waypoints[${i}].name=this.value;renderLegs();renderSummary();renderRadiali();">
+    <div class="wp-coord">${wp.lat.toFixed(4)}<br>${wp.lng.toFixed(4)}</div>
+    <button class="wp-del" onclick="waypoints.splice(${i},1);renderAll()">✕</button>
+  </div>`).join('');
+}
+function renderLegs(){
+  const el=document.getElementById('leglist');
+  if(waypoints.length<2){el.innerHTML='<div class="empty">// servono ≥ 2 waypoint</div>';return;}
+  el.innerHTML='';
+  for(let i=0;i<waypoints.length-1;i++){
+    const l=calcLeg(waypoints[i],waypoints[i+1]);
+    const d=document.createElement('div');d.className='leg-row';
+    d.innerHTML=`<div class="leg-title">${waypoints[i].name} → ${waypoints[i+1].name}</div>
+      <div class="leg-data">
+        <span>Dist <b>${l.dist.toFixed(1)} NM</b></span>
+        <span>HDG <b>${Math.round(l.hdgMag)}°M</b></span>
+        <span>TC <b>${Math.round(l.tc)}°V</b></span>
+        <span>GS <b>${Math.round(l.gs)} kt</b></span>
+        <span>EET <b>${fmt(l.th)}</b></span>
+        <span>Carb <b>${l.fuel.toFixed(1)} l</b></span>
+      </div>`;
+    el.appendChild(d);
+  }
+}
+function renderSummary(){
+  const el=document.getElementById('summary');
+  if(waypoints.length<2){el.innerHTML='<div class="empty">// aggiungi waypoint</div>';return;}
+  let dist=0,time=0,fuel=0;
+  for(let i=0;i<waypoints.length-1;i++){const l=calcLeg(waypoints[i],waypoints[i+1]);dist+=l.dist;time+=l.th;fuel+=l.fuel;}
+  const fob=+document.getElementById('fob').value||100,fres=+document.getElementById('fres').value||15,avail=fob-fres,ok=fuel<=avail;
+  el.innerHTML=`<div class="stat-grid">
+    <div class="stat-card"><div class="sl">Distanza totale</div><div class="sv" style="color:var(--accent)">${dist.toFixed(1)} <span style="font-size:9px;color:#555a6a">NM</span></div></div>
+    <div class="stat-card"><div class="sl">Tempo stimato</div><div class="sv" style="color:var(--amber)">${fmt(time)}</div></div>
+    <div class="stat-card"><div class="sl">Carb. necessario</div><div class="sv" style="color:${ok?'var(--green)':'var(--red)'}">${fuel.toFixed(1)} <span style="font-size:9px;color:#555a6a">l</span></div></div>
+    <div class="stat-card"><div class="sl">Carb. disponibile</div><div class="sv">${avail.toFixed(1)} <span style="font-size:9px;color:#555a6a">l</span></div></div>
+  </div>
+  <div class="status-bar ${ok?'ok':'warn'}">${ok?'✓ carburante sufficiente':'⚠ carburante insufficiente'}</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// VOR / RADIALI
+// ══════════════════════════════════════════════════════════════════
+function populateVorSelect(){
+  const sel=document.getElementById('vor-sel');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— scegli VOR —</option>';
+  NAVAIDS.filter(v=>v[2]!=='N').forEach(v=>{
+    const opt=document.createElement('option');
+    opt.value=v[0];opt.textContent=`${v[0]} — ${v[1]} (${v[3]} MHz)`;
+    sel.appendChild(opt);
+  });
+  if(cur) sel.value=cur;
+}
+
+function renderRadiali(){
+  const selId=document.getElementById('vor-sel').value;
+  const wrap=document.getElementById('radiali-wrap');
+  const infoCard=document.getElementById('vor-info-card');
+  if(vorLineLayer){map.removeLayer(vorLineLayer);vorLineLayer=null;}
+
+  if(!selId){infoCard.innerHTML='';wrap.innerHTML='<div class="empty">// scegli un VOR dal menu</div>';return;}
+  if(!waypoints.length){wrap.innerHTML='<div class="empty">// aggiungi waypoint nel tab Piano</div>';return;}
+
+  const vor=NAVAIDS.find(n=>n[0]===selId);
+  if(!vor) return;
+  const[id,name,type,freq,vlat,vlng]=vor;
+  const mv=+document.getElementById('mvar').value||0;
+  const tl=type==='D'?'VOR-DME':'VOR';
+
+  infoCard.innerHTML=`<div class="vor-info-card">
+    <div class="vi-name">${id} <span style="font-size:11px;color:var(--text2);font-weight:400">${tl}</span></div>
+    <div class="vi-full">${name}</div>
+    <div class="vi-freq">${freq} MHz</div>
+  </div>`;
+
+  // Disegna linee dal VOR a ogni waypoint
+  const lines=[];
+  waypoints.forEach(wp=>{
+    lines.push([[vlat,vlng],[wp.lat,wp.lng]]);
+  });
+  vorLineLayer=L.polyline(lines,{color:'#f472b6',weight:1,dashArray:'4 4',opacity:.6}).addTo(map);
+
+  // Tabella radiali
+  wrap.innerHTML=`<table class="radiali-table">
+    <thead><tr><th>Waypoint</th><th>QDR</th><th>Dist NM</th></tr></thead>
+    <tbody>${waypoints.map((wp,i)=>{
+      const q=Math.round(qdr({lat:vlat,lng:vlng},wp,mv));
+      const d=nmBetween({lat:vlat,lng:vlng},wp);
+      return`<tr>
+        <td><span class="rad-wp">${wp.name}</span></td>
+        <td><span class="rad-val">${String(q).padStart(3,'0')}°</span></td>
+        <td><span class="rad-dist">${d.toFixed(1)}</span></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function drawVorLines(){
+  // Ridisegna se VOR selezionato
+  const selId=document.getElementById('vor-sel')?.value;
+  if(selId) renderRadiali();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FREQUENZE AUTOMATICHE
+// ══════════════════════════════════════════════════════════════════
+function renderFreqAuto(){
+  const el=document.getElementById('freq-auto');
+  const elVor=document.getElementById('freq-vor-auto');
+  if(!waypoints.length){
+    el.innerHTML='<div class="empty">// nessun waypoint nella rotta</div>';
+    elVor.innerHTML='<div class="empty">// nessun VOR nella rotta</div>';
+    return;
+  }
+
+  // Determina FIR attraversati
+  const firSeen=new Set();
+  waypoints.forEach(wp=>{
+    FIR_ZONES.forEach(fz=>{
+      if(wp.lat>=fz.latMin&&wp.lat<=fz.latMax&&wp.lng>=fz.lngMin&&wp.lng<=fz.lngMax) firSeen.add(fz.id);
+    });
+  });
+
+  // Determina aeroporti coinvolti (partenza = primo WP se ICAO, arrivo = ultimo WP se ICAO)
+  const aptSeen=new Set();
+  waypoints.forEach(wp=>{
+    if(wp.isApt&&FREQ_DB[wp.name]) aptSeen.add(wp.name);
+    // match anche per nome
+    if(AIRPORTS.find(a=>a[0]===wp.name)) aptSeen.add(wp.name);
+  });
+
+  // Costruisci lista freq
+  let rows=[];
+  // Universali sempre
+  FREQ_DB['_UNIV'].forEach(f=>rows.push(f));
+  // FIR
+  firSeen.forEach(fid=>{
+    if(FREQ_DB[fid]) FREQ_DB[fid].forEach(f=>rows.push(f));
+  });
+  // Aeroporti
+  aptSeen.forEach(icao=>{
+    if(FREQ_DB[icao]) FREQ_DB[icao].forEach(f=>rows.push(f));
+  });
+
+  if(!rows.length){el.innerHTML='<div class="empty">// nessuna frequenza trovata per questa rotta</div>';return;}
+
+  const typeCls={COM:'fc',APP:'fa',INFO:'fi',TWR:'ft',ATIS:'fc',GND:'fi',NAV:'fn'};
+  el.innerHTML=`<table class="freq-table">
+    <thead><tr><th>Stazione</th><th>MHz</th><th>Tipo</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td>${r.n}</td>
+      <td>${r.f}</td>
+      <td><span class="ftb ${typeCls[r.t]||'fc'}">${r.t}</span></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+
+  // VOR in rotta
+  const vorWps=waypoints.filter(w=>w.isVor&&w.vorFreq);
+  const seen=new Set();
+  const vorRows=vorWps.filter(w=>{if(seen.has(w.name))return false;seen.add(w.name);return true;});
+  if(!vorRows.length){elVor.innerHTML='<div class="empty">// nessun VOR aggiunto come waypoint</div>';return;}
+  elVor.innerHTML=`<table class="freq-table">
+    <thead><tr><th>VOR</th><th>MHz</th><th>Tipo</th></tr></thead>
+    <tbody>${vorRows.map(w=>{
+      const nd=NAVAIDS.find(n=>n[0]===w.name);
+      const tl=nd?(nd[2]==='N'?'NDB':nd[2]==='D'?'VOR-DME':'VOR'):'VOR';
+      return`<tr><td>${w.name}</td><td>${w.vorFreq}</td><td><span class="ftb fn">${tl}</span></td></tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SAVE / LOAD PIANI
+// ══════════════════════════════════════════════════════════════════
+function savePlan(){
+  const name=document.getElementById('pname').value.trim()||('Piano '+new Date().toLocaleTimeString('it'));
+  if(!waypoints.length) return;
+  const plans=JSON.parse(localStorage.getItem('vfr_plans')||'[]');
+  plans.push({name,waypoints:JSON.parse(JSON.stringify(waypoints)),vorSel:document.getElementById('vor-sel').value});
+  localStorage.setItem('vfr_plans',JSON.stringify(plans));
+  document.getElementById('pname').value='';renderSavedPlans();
+}
+function loadPlan(i){
+  const plans=JSON.parse(localStorage.getItem('vfr_plans')||'[]');
+  const p=plans[i];
+  waypoints=JSON.parse(JSON.stringify(p.waypoints));
+  renderAll();
+  if(p.vorSel){populateVorSelect();document.getElementById('vor-sel').value=p.vorSel;renderRadiali();}
+  if(waypoints.length){const b=L.latLngBounds(waypoints.map(w=>[w.lat,w.lng]));map.fitBounds(b,{padding:[60,60]});}
+}
+function deletePlan(i){
+  const plans=JSON.parse(localStorage.getItem('vfr_plans')||'[]');
+  plans.splice(i,1);localStorage.setItem('vfr_plans',JSON.stringify(plans));renderSavedPlans();
+}
+function renderSavedPlans(){
+  const el=document.getElementById('savedplans'),plans=JSON.parse(localStorage.getItem('vfr_plans')||'[]');
+  if(!plans.length){el.innerHTML='<div class="empty">// nessun piano salvato</div>';return;}
+  el.innerHTML=plans.map((p,i)=>`<div class="plan-item">
+    <div class="plan-name">${p.name}</div>
+    <button class="btn-sm" onclick="loadPlan(${i})">carica</button>
+    <button class="btn-sm btn-del-sm" onclick="deletePlan(${i})">✕</button>
+  </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// METAR — 3 proxy in cascata
+// ══════════════════════════════════════════════════════════════════
+const AW='https://aviationweather.gov/api/data/';
+const PROXIES=[
+  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u=>`https://thingproxy.freeboard.io/fetch/${u}`,
+];
+async function tryFetch(url){
+  for(const px of PROXIES){
+    try{
+      const r=await fetch(px(url),{signal:AbortSignal.timeout(8000)});
+      if(r.ok){const t=await r.text();if(t&&t.length>5&&!t.includes('Host not in allowlist')&&!t.includes('error')) return t;}
+    }catch(e){}
+  }
+  return null;
+}
+
+async function fetchMetar(){
+  const icao=document.getElementById('icao-input').value.trim().toUpperCase();
+  if(!icao||icao.length<3) return;
+  if(metarData[icao]) return;
+  const el=document.getElementById('metar-list');
+  if(el.querySelector('.empty')) el.innerHTML='';
+  const lid='ld-'+icao;
+  el.insertAdjacentHTML('afterbegin',`<div id="${lid}" class="loading"><span class="spin">⟳</span> Caricamento ${icao}...</div>`);
+  try{
+    const mt=await tryFetch(AW+'metar?ids='+icao+'&format=json');
+    const tt=await tryFetch(AW+'taf?ids='+icao+'&format=json');
+    document.getElementById(lid)?.remove();
+    if(!mt){el.insertAdjacentHTML('afterbegin',`<div class="merr">Impossibile raggiungere il server meteo.<br>Controlla la connessione internet.</div>`);return;}
+    let mj,tj;
+    try{mj=JSON.parse(mt);}catch(e){mj=null;}
+    try{tj=tt?JSON.parse(tt):null;}catch(e){tj=null;}
+    if(!mj||!mj.length){el.insertAdjacentHTML('afterbegin',`<div class="merr">Nessun METAR per <b>${icao}</b>. Verifica il codice ICAO.</div>`);return;}
+    metarData[icao]=true;renderMetarCard(icao,mj[0],tj&&tj.length?tj[0]:null);
+  }catch(e){document.getElementById(lid)?.remove();el.insertAdjacentHTML('afterbegin',`<div class="merr">Errore rete per ${icao}.</div>`);}
+  document.getElementById('icao-input').value='';
+}
+
+function wxCat(vis,ceil){
+  const v=vis!=null?parseFloat(vis)*1852:99999,c=ceil||9999;
+  if(v>=5000&&c>=1500)return'VMC';if(v>=1500&&c>=500)return'MVFR';return'IMC';
+}
+function renderMetarCard(icao,m,taf){
+  const el=document.getElementById('metar-list');
+  const cat=wxCat(m.visib,m.ceil);
+  const catCls=cat==='VMC'?'vmc':cat==='MVFR'?'mvfr':'imc';
+  const wind=m.wdir!=null&&m.wspd!=null?`${String(m.wdir).padStart(3,'0')}°/${m.wspd}kt${m.wgst?` G${m.wgst}kt`:''}`:'CALM';
+  const vis=m.visib!=null?(parseFloat(m.visib)>=10?'≥10 SM':`${m.visib} SM`):'—';
+  const ceil=m.ceil?`${m.ceil} ft`:'CAVOK';
+  const temp=m.temp!=null?`${m.temp}°/${m.dewp}°`:'—';
+  const qnh=m.altim?`${Math.round(m.altim*33.864)} hPa`:'—';
+  const time=m.obsTime?m.obsTime.substring(11,16)+'Z':'—';
+  const tafHtml=taf?`<div class="taf-block"><div class="taf-title">TAF</div><div class="taf-raw">${(taf.rawOb||taf.tafText||'').replace(/\n/g,'<br>')}</div></div>`:'';
+  const div=document.createElement('div');div.className='metar-card';div.id='mc-'+icao;
+  div.innerHTML=`<button class="metar-del" onclick="removeMetar('${icao}')">✕</button>
+    <div class="metar-icao">${icao}</div><span class="wxb ${catCls}">${cat}</span>
+    <div class="metar-raw">${m.rawOb||''}</div>
+    <div class="mgrid">
+      <div><div class="ml">Vento</div><div class="mv">${wind}</div></div>
+      <div><div class="ml">Visibilità</div><div class="mv">${vis}</div></div>
+      <div><div class="ml">Ceiling</div><div class="mv">${ceil}</div></div>
+      <div><div class="ml">Temp/DP</div><div class="mv">${temp}</div></div>
+      <div><div class="ml">QNH</div><div class="mv">${qnh}</div></div>
+      <div><div class="ml">Ora</div><div class="mv">${time}</div></div>
+    </div>${tafHtml}`;
+  el.insertAdjacentElement('afterbegin',div);
+}
+function removeMetar(icao){delete metarData[icao];document.getElementById('mc-'+icao)?.remove();if(!document.querySelector('.metar-card'))document.getElementById('metar-list').innerHTML='<div class="empty">// nessuna stazione</div>';}
+
+// ══════════════════════════════════════════════════════════════════
+// NOTAM PARSER
+// ══════════════════════════════════════════════════════════════════
+function parseNotam(){
+  const raw=document.getElementById('notam-input').value.trim();if(!raw) return;
+  const el=document.getElementById('notam-list');
+  if(el.querySelector('.empty')) el.innerHTML='';
+  const blocks=raw.split(/(?=\n?[A-Z]\d{4}\/\d{2}\s+NOTAM)/g).filter(b=>b.trim());
+  (blocks.length?blocks:[raw]).forEach(block=>{
+    const idM=block.match(/([A-Z]\d{4}\/\d{2})\s+NOTAM([NRC])/);
+    const id=idM?idM[1]:'N/D',type=idM?{N:'Nuovo',R:'Sostituzione',C:'Cancellazione'}[idM[2]]:'—';
+    const aM=block.match(/A\)\s*([A-Z]{4}(?:\s+[A-Z]{4})*)/);
+    const bM=block.match(/B\)\s*(\d{10})/),cM=block.match(/C\)\s*(\d{10}|PERM)/);
+    const eM=block.match(/E\)\s*([\s\S]+?)(?=\n[F-Z]\)|$)/);
+    const qM=block.match(/Q\)\s*\w+\/(\w+)/);
+    const loc=aM?aM[1].trim():'',start=bM?fmtND(bM[1]):'',end=cM?cM[1]==='PERM'?'PERMANENTE':fmtND(cM[1]):'';
+    const body=eM?eM[1].trim():block.substring(0,300).trim();
+    const isWarn=!!((qM&&qM[1].match(/RT|RR|LR|ZZ/))||body.match(/CLOS|PROHIB|DANGER|PERICOL|RESTR/i));
+    const div=document.createElement('div');div.className='notam-item '+(isWarn?'nw':'ni');
+    div.innerHTML=`<div class="notam-hdr"><span class="nid">${id}</span>${loc?`<span class="nloc">${loc}</span>`:''}<span class="ntype">${type}</span></div><div class="nbody">${body.substring(0,500)}${body.length>500?'…':''}</div>${(start||end)?`<div class="ntimes">${start?'Dal '+start:''} ${end?'→ '+end:''}</div>`:''}`;
+    el.insertAdjacentElement('afterbegin',div);
+  });
+  document.getElementById('notam-input').value='';
+}
+function fmtND(s){if(!s||s.length!==10)return s;return`${s.substr(0,2)}/${s.substr(2,2)}/${s.substr(4,2)} ${s.substr(6,2)}:${s.substr(8,2)}Z`;}
+
+// ══════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════
+document.querySelectorAll('input[type=number]').forEach(el=>el.addEventListener('input',()=>{renderLegs();renderSummary();}));
+document.getElementById('icao-input').addEventListener('keydown',e=>{if(e.key==='Enter')fetchMetar();});
+initMap();renderSavedPlans();populateVorSelect();
+</script>
+</body>
+</html>
