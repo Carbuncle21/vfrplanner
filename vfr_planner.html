@@ -187,6 +187,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .pa.am:hover{background:rgba(232,160,32,.28)}
 /* MAP BADGE - spostato fuori dal panel altimetria */
 .map-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(13,15,20,.88);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.13);border-radius:20px;padding:5px 14px;font-size:10px;color:#8b90a0;pointer-events:none;white-space:nowrap;font-family:'JetBrains Mono',monospace;z-index:999}
+
+.leaflet-tooltip.airspace-tooltip{background:rgba(13,15,20,.92);border:1px solid rgba(255,255,255,.15);color:#e8eaf0;border-radius:6px;padding:5px 9px;font-size:11px;box-shadow:0 2px 10px rgba(0,0,0,.5)}
 .leaflet-container{background:#1a1e28}
 .leaflet-control-zoom a{background:#13161d!important;color:#e8eaf0!important;border-color:rgba(255,255,255,.13)!important}
 .leaflet-control-zoom a:hover{background:#1a1e28!important}
@@ -346,10 +348,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 
 <div id="map-wrap">
   <div id="map"></div>
-  <!-- Layer switcher OSM / OFM -->
+  <!-- Layer switcher OSM / VFR chart -->
   <div class="layer-switcher">
-    <button class="layer-btn active" id="btn-osm" onclick="setLayer('osm')">OSM</button>
-    <button class="layer-btn" id="btn-ofm" onclick="setLayer('ofm')">OFM</button>
+    <button class="layer-btn active" id="btn-osm" onclick="setLayer('osm')" title="OpenStreetMap">OSM</button>
+    <button class="layer-btn" id="btn-ofm" onclick="setLayer('vfr')" title="OSM + OpenAIP (spazi aerei, aeroporti, navaids)">OpenAIP</button>
   </div>
   <div class="map-badge">✦ click mappa per waypoint · trascina per riordinare · click VOR/aeroporto per dettagli</div>
   <div id="elev-panel">
@@ -491,7 +493,7 @@ const FREQ_DB={
 
 let waypoints=[],map,markersLayer=[],polylineLayer=null;
 let vorMarkers=[],aptMarkers=[],vorVisible=true,aptVisible=true;
-let vorLineLayer=null,elevData=null;
+let vorLineLayer=null,elevData=null,openAipLayer=null;
 let altUnit='ft'; // 'ft' o 'm' — default piedi
 let currentLayer='osm';
 let osmLayer=null,ofmLayer=null;
@@ -526,29 +528,141 @@ function switchTab(n){
   if(n==='wx') renderMetarLinks();
 }
 
+// ══════════ SPAZI AEREI (GeoJSON locale — uso didattico PPL) ══════════
+// Dati approssimati. Non usare per navigazione reale.
+const AIRSPACES=[
+  // FIR boundaries
+  {id:"FIR_MIL",name:"Milano FIR",  cls:"FIR",floor:"FL095",ceil:"UNL",
+   coords:[[47.5,6.5],[47.5,11.5],[43.8,11.5],[43.8,6.5]]},
+  {id:"FIR_PAD",name:"Padova FIR",  cls:"FIR",floor:"FL095",ceil:"UNL",
+   coords:[[47.5,11.5],[47.5,14.5],[43.8,14.5],[43.8,11.5]]},
+  // TMA
+  {id:"TMA_MIL",name:"Milano TMA",  cls:"C",floor:"1500ft",ceil:"FL145",
+   coords:[[45.95,8.55],[46.00,9.70],[45.50,10.05],[44.95,9.90],[44.90,8.80],[45.40,8.50]]},
+  {id:"TMA_VEN",name:"Venezia TMA", cls:"D",floor:"1500ft",ceil:"FL095",
+   coords:[[46.10,11.60],[46.10,13.20],[45.10,13.20],[45.10,11.60]]},
+  {id:"TMA_BLQ",name:"Bologna TMA", cls:"D",floor:"1500ft",ceil:"FL095",
+   coords:[[44.95,10.80],[44.95,11.80],[44.15,11.80],[44.15,10.80]]},
+  {id:"TMA_TRS",name:"Trieste TMA", cls:"D",floor:"1500ft",ceil:"FL095",
+   coords:[[46.10,13.20],[46.10,14.10],[45.50,14.10],[45.50,13.20]]},
+  {id:"TMA_GEN",name:"Genova TMA",  cls:"D",floor:"1500ft",ceil:"FL095",
+   coords:[[44.70,8.20],[44.70,9.20],[43.90,9.20],[43.90,8.20]]},
+  {id:"TMA_FIR",name:"Firenze TMA", cls:"D",floor:"1500ft",ceil:"FL095",
+   coords:[[44.20,10.80],[44.20,11.70],[43.50,11.70],[43.50,10.80]]},
+  {id:"TMA_VER",name:"Verona TMA",  cls:"D",floor:"1500ft",ceil:"FL095",
+   coords:[[45.65,10.50],[45.65,11.35],[45.05,11.35],[45.05,10.50]]},
+  // CTR
+  {id:"CTR_LIMC",name:"CTR Malpensa",cls:"D",floor:"SFC",ceil:"2000ft",
+   coords:[[45.76,8.55],[45.76,8.90],[45.52,8.90],[45.52,8.55]]},
+  {id:"CTR_LIML",name:"CTR Linate",  cls:"D",floor:"SFC",ceil:"1500ft",
+   coords:[[45.51,9.18],[45.51,9.38],[45.38,9.38],[45.38,9.18]]},
+  {id:"CTR_LIME",name:"CTR Bergamo", cls:"D",floor:"SFC",ceil:"2000ft",
+   coords:[[45.74,9.60],[45.74,9.83],[45.62,9.83],[45.62,9.60]]},
+  {id:"CTR_LIPZ",name:"CTR Venezia", cls:"D",floor:"SFC",ceil:"1500ft",
+   coords:[[45.60,12.15],[45.60,12.55],[45.40,12.55],[45.40,12.15]]},
+  {id:"CTR_LIPH",name:"CTR Treviso", cls:"D",floor:"SFC",ceil:"1500ft",
+   coords:[[45.73,12.08],[45.73,12.32],[45.57,12.32],[45.57,12.08]]},
+  {id:"CTR_LIPE",name:"CTR Bologna", cls:"D",floor:"SFC",ceil:"1500ft",
+   coords:[[44.62,11.15],[44.62,11.42],[44.44,11.42],[44.44,11.15]]},
+  {id:"CTR_LIPX",name:"CTR Verona",  cls:"D",floor:"SFC",ceil:"1500ft",
+   coords:[[45.49,10.78],[45.49,11.00],[45.31,11.00],[45.31,10.78]]},
+  {id:"CTR_LIPR",name:"CTR Rimini",  cls:"D",floor:"SFC",ceil:"1500ft",
+   coords:[[44.09,12.53],[44.09,12.72],[43.95,12.72],[43.95,12.53]]},
+  {id:"CTR_LIPQ",name:"CTR Trieste", cls:"D",floor:"SFC",ceil:"1500ft",
+   coords:[[45.90,13.38],[45.90,13.61],[45.76,13.61],[45.76,13.38]]},
+  {id:"CTR_LIPB",name:"CTR Bolzano", cls:"D",floor:"SFC",ceil:"1500ft",
+   coords:[[46.54,11.22],[46.54,11.46],[46.40,11.46],[46.40,11.22]]},
+  {id:"CTR_LIMP",name:"CTR Parma",   cls:"D",floor:"SFC",ceil:"1500ft",
+   coords:[[44.90,10.20],[44.90,10.40],[44.76,10.40],[44.76,10.20]]},
+  {id:"CTR_LIRQ",name:"CTR Firenze", cls:"D",floor:"SFC",ceil:"1500ft",
+   coords:[[43.88,11.12],[43.88,11.34],[43.74,11.34],[43.74,11.12]]},
+  {id:"CTR_LIPY",name:"CTR Ancona",  cls:"D",floor:"SFC",ceil:"1500ft",
+   coords:[[43.69,13.25],[43.69,13.48],[43.55,13.48],[43.55,13.25]]},
+  {id:"CTR_LIPU",name:"CTR Padova",  cls:"D",floor:"SFC",ceil:"1500ft",
+   coords:[[45.47,11.76],[45.47,11.96],[45.32,11.96],[45.32,11.76]]},
+  {id:"CTR_LIPK",name:"CTR Forli",   cls:"D",floor:"SFC",ceil:"1500ft",
+   coords:[[44.26,11.98],[44.26,12.18],[44.13,12.18],[44.13,11.98]]},
+  // Zone militari
+  {id:"R_CERVIA",name:"R-51 Cervia",  cls:"R",floor:"SFC",ceil:"FL145",
+   coords:[[44.32,12.05],[44.32,12.38],[44.05,12.38],[44.05,12.05]]},
+  {id:"D_AVIANO",name:"D-62 Aviano",  cls:"R",floor:"SFC",ceil:"FL195",
+   coords:[[46.15,12.45],[46.15,12.75],[45.95,12.75],[45.95,12.45]]},
+  {id:"R_GHEDI",name:"R-26 Ghedi",    cls:"R",floor:"SFC",ceil:"FL195",
+   coords:[[45.48,10.18],[45.48,10.45],[45.28,10.45],[45.28,10.18]]},
+  {id:"D_ISTRANA",name:"D-78 Istrana",cls:"R",floor:"SFC",ceil:"FL145",
+   coords:[[45.75,12.00],[45.75,12.30],[45.55,12.30],[45.55,12.00]]},
+];
+
+const AIRSPACE_STYLE={
+  FIR:{color:'#6b7280',fillOpacity:0.03,dashArray:'12 6',weight:1.2},
+  C:  {color:'#ef4444',fillOpacity:0.07,dashArray:null,  weight:1.8},
+  D:  {color:'#3b82f6',fillOpacity:0.07,dashArray:null,  weight:1.6},
+  E:  {color:'#22c55e',fillOpacity:0.05,dashArray:'6 4', weight:1.2},
+  R:  {color:'#dc2626',fillOpacity:0.13,dashArray:'5 4', weight:2.0},
+  G:  {color:'#6b7280',fillOpacity:0.03,dashArray:'4 4', weight:1.0},
+};
+
+let airspaceLayerGroup=null;
+
+function initAirspaceLayer(){
+  const layers=[];
+  AIRSPACES.forEach(as=>{
+    const st=AIRSPACE_STYLE[as.cls]||AIRSPACE_STYLE.G;
+    const poly=L.polygon(as.coords.map(c=>[c[0],c[1]]),{
+      color:st.color, weight:st.weight,
+      fillColor:st.color, fillOpacity:st.fillOpacity,
+      dashArray:st.dashArray, opacity:0.85,
+      interactive:true,
+    });
+    poly.bindTooltip(
+      `<b style="font-family:monospace">${as.name}</b><br>`+
+      `<span style="font-family:monospace;font-size:11px">Classe <b>${as.cls}</b> &nbsp;${as.floor} – ${as.ceil}</span>`,
+      {sticky:true, direction:'auto', opacity:0.95}
+    );
+    layers.push(poly);
+  });
+  airspaceLayerGroup=L.layerGroup(layers);
+}
+
 // ══════════ LAYER SWITCHER ══════════
+const OPENAIP_KEY='0818b7b9755b3ef2dd71ce7b4fe44119';
+
 function initLayers(){
   osmLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'© OpenStreetMap',maxZoom:17
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom:18
   });
-  // OpenFlightMaps — tile pubbliche
-  ofmLayer=L.tileLayer('https://nwy-tiles-api.prod.newaydata.com/tiles/{z}/{x}/{y}.png',{
-    attribution:'© <a href="https://www.openflightmaps.org" target="_blank">OpenFlightMaps</a> · © OpenStreetMap',
-    maxZoom:14,
-    opacity:1
-  });
+
+  // OpenAIP layer: tile aeronautici con spazi aerei, aeroporti, navaids Europa
+  openAipLayer=L.tileLayer(
+    'https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey='+OPENAIP_KEY,
+    {
+      attribution:'© <a href="https://www.openaip.net" target="_blank">OpenAIP</a>',
+      maxZoom:14, minZoom:4, opacity:1.0,
+      crossOrigin:true,
+    }
+  );
+
   osmLayer.addTo(map);
+  // OpenAIP sempre sovrapposto (trasparente dove non c'è info)
+  openAipLayer.addTo(map);
 }
+
 function setLayer(which){
   currentLayer=which;
   document.getElementById('btn-osm').classList.toggle('active',which==='osm');
-  document.getElementById('btn-ofm').classList.toggle('active',which==='ofm');
-  if(which==='osm'){
-    if(map.hasLayer(ofmLayer))map.removeLayer(ofmLayer);
-    if(!map.hasLayer(osmLayer))osmLayer.addTo(map);
+  document.getElementById('btn-ofm').classList.toggle('active',which==='vfr');
+  if(which==='vfr'){
+    // VFR: OSM + OpenAIP overlay visibile
+    if(!map.hasLayer(osmLayer)) osmLayer.addTo(map);
+    if(!map.hasLayer(openAipLayer)) openAipLayer.addTo(map);
+    openAipLayer.setOpacity(1.0);
+    // rimuovi poligoni GeoJSON se presenti
+    if(map.hasLayer(airspaceLayerGroup)) map.removeLayer(airspaceLayerGroup);
   } else {
-    if(map.hasLayer(osmLayer))map.removeLayer(osmLayer);
-    if(!map.hasLayer(ofmLayer))ofmLayer.addTo(map);
+    // OSM puro: nascondi overlay OpenAIP
+    openAipLayer.setOpacity(0);
+    if(map.hasLayer(airspaceLayerGroup)) map.removeLayer(airspaceLayerGroup);
   }
 }
 
@@ -849,6 +963,7 @@ async function doFetchElevation(){
   loading.style.display='flex';
   elevData=null;
 
+  // Genera punti lungo la rotta (max 100 punti)
   const pts=[];
   const totalLegs=waypoints.length-1;
   const ptsPerLeg=Math.max(5,Math.floor(100/totalLegs));
@@ -856,27 +971,55 @@ async function doFetchElevation(){
     const a=waypoints[i],b=waypoints[i+1];
     for(let j=0;j<=ptsPerLeg;j++){
       const t=j/ptsPerLeg;
-      pts.push({latitude:a.lat+(b.lat-a.lat)*t,longitude:a.lng+(b.lng-a.lng)*t});
+      pts.push({lat:a.lat+(b.lat-a.lat)*t,lng:a.lng+(b.lng-a.lng)*t});
     }
   }
-  const uniq=pts.filter((p,i)=>i===0||p.latitude!==pts[i-1].latitude||p.longitude!==pts[i-1].longitude);
+  // Rimuovi duplicati
+  const uniq=pts.filter((p,i)=>i===0||p.lat!==pts[i-1].lat||p.lng!==pts[i-1].lng);
 
+  // Usa open-meteo elevation API (gratuita, CORS aperto, stabile)
+  // Accetta max 100 punti per chiamata
+  const CHUNK=100;
+  const allElev=[];
   try{
-    const res=await fetch('https://api.open-elevation.com/api/v1/lookup',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body:JSON.stringify({locations:uniq})
-    });
-    const data=await res.json();
+    for(let i=0;i<uniq.length;i+=CHUNK){
+      const chunk=uniq.slice(i,i+CHUNK);
+      const lats=chunk.map(p=>p.lat.toFixed(6)).join(',');
+      const lngs=chunk.map(p=>p.lng.toFixed(6)).join(',');
+      const url=`https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`;
+      const res=await fetch(url);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data=await res.json();
+      // open-meteo ritorna {elevation:[...]} oppure {elevation: number} se 1 punto
+      const arr=Array.isArray(data.elevation)?data.elevation:[data.elevation];
+      allElev.push(...arr);
+    }
     loading.style.display='none';
-    if(data.results&&data.results.length){
-      elevData=data.results.map(r=>r.elevation);
-      elevData._pts=uniq;  // salva riferimento punti
+    if(allElev.length){
+      elevData=allElev;
+      elevData._pts=uniq;
       drawElevationProfile(elevData,uniq);
     }
   }catch(e){
-    loading.style.display='none';
-    document.getElementById('elev-overlay').textContent='Profilo altimetrico non disponibile';
+    // Fallback: prova open-elevation.com
+    try{
+      const uniqOE=uniq.map(p=>({latitude:p.lat,longitude:p.lng}));
+      const res=await fetch('https://api.open-elevation.com/api/v1/lookup',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body:JSON.stringify({locations:uniqOE})
+      });
+      const data=await res.json();
+      loading.style.display='none';
+      if(data.results&&data.results.length){
+        elevData=data.results.map(r=>r.elevation);
+        elevData._pts=uniq;
+        drawElevationProfile(elevData,uniq);
+      }
+    }catch(e2){
+      loading.style.display='none';
+      document.getElementById('elev-overlay').textContent='Profilo altimetrico non disponibile (API offline)';
+    }
   }
 }
 
