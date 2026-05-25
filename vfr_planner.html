@@ -38,21 +38,40 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .logo-icon{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
 .logo-text{font-size:13px;font-weight:700;letter-spacing:-.02em}
 .logo-sub{font-size:9px;color:var(--text2);font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase}
+/* DISCLAIMER BANNER */
+.disclaimer-banner{background:rgba(251,191,36,.08);border-bottom:1px solid rgba(251,191,36,.25);padding:6px 14px;display:flex;align-items:flex-start;gap:6px;flex-shrink:0}
+.disclaimer-banner .di{font-size:13px;flex-shrink:0;margin-top:1px}
+.disclaimer-banner .dt{font-size:9px;color:#fbbf24;font-family:var(--mono);line-height:1.5;letter-spacing:.01em}
 .sec{padding:10px 14px;border-bottom:1px solid var(--border)}
 .sec-title{font-size:9px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.13em;margin-bottom:7px}
 .param-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
 .param-row label{font-size:11px;color:var(--text2)}
 .param-row input[type=number]{width:74px;font-size:11px;font-family:var(--mono);padding:3px 6px;text-align:right;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);outline:none;transition:border-color .15s}
 .param-row input[type=number]:focus{border-color:var(--accent)}
-.wp-item{display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid var(--border);animation:fi .18s ease}
+/* WAYPOINT LIST con drag */
+.wp-item{display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid var(--border);animation:fi .18s ease;cursor:default;transition:background .1s}
+.wp-item.dragging{opacity:.4}
+.wp-item.drag-over{border-top:2px solid var(--accent)}
 @keyframes fi{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
 .wp-item:last-child{border-bottom:none}
+.wp-drag{cursor:grab;color:var(--text3);font-size:13px;padding:0 2px;flex-shrink:0;user-select:none}
+.wp-drag:active{cursor:grabbing}
 .wp-num{width:19px;height:19px;border-radius:50%;color:#fff;font-size:9px;font-weight:700;font-family:var(--mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--accent)}
 .wp-num.v{background:var(--vor)}.wp-num.a{background:var(--apt)}
 .wp-name-in{font-size:11px;font-family:var(--mono);border:1px solid var(--border);border-radius:5px;background:var(--bg3);color:var(--text);padding:2px 4px;width:56px;outline:none}
 .wp-coord{font-size:9px;color:var(--text3);flex:1;font-family:var(--mono);line-height:1.3}
 .wp-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:1px 3px;border-radius:3px;transition:color .15s;line-height:1}
 .wp-del:hover{color:var(--red)}
+/* Insert-between button */
+.wp-insert{display:flex;justify-content:center;padding:1px 0}
+.wp-insert-btn{background:none;border:1px dashed var(--border2);border-radius:3px;color:var(--text3);font-size:9px;font-family:var(--mono);cursor:pointer;padding:1px 10px;transition:all .15s;width:90%}
+.wp-insert-btn:hover{border-color:var(--accent);color:var(--accent)}
+/* BARRA AZIONI WP */
+.wp-actions{display:flex;gap:5px;margin-top:7px;align-items:center}
+/* ALT TOGGLE */
+.alt-toggle-row{display:flex;align-items:center;gap:7px}
+.alt-unit-btn{font-size:9px;font-family:var(--mono);padding:2px 8px;border-radius:4px;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);transition:all .15s}
+.alt-unit-btn.active{background:rgba(61,142,240,.15);border-color:var(--accent);color:var(--accent)}
 .leg-row{padding:5px 0;border-bottom:1px solid var(--border);font-size:11px}
 .leg-row:last-child{border-bottom:none}
 .leg-title{font-weight:500;margin-bottom:2px}
@@ -84,9 +103,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .btn-sm{padding:2px 8px;font-size:10px;font-family:var(--mono);background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:5px;cursor:pointer;transition:all .15s}
 .btn-sm:hover{border-color:var(--accent);color:var(--accent)}
 .btn-delsm:hover{border-color:var(--red);color:var(--red)}
+.btn-danger{padding:5px 11px;font-size:11px;font-family:var(--font);font-weight:500;background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.3);border-radius:var(--r);cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-danger:hover{background:rgba(248,113,113,.22)}
 .plan-item{display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid var(--border)}
 .plan-item:last-child{border-bottom:none}
 .plan-name{flex:1;font-size:11px;font-family:var(--mono);color:var(--text2)}
+/* LAYER SWITCHER */
+.layer-switcher{position:absolute;top:10px;right:10px;z-index:1000;display:flex;gap:0;border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,.15);box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.layer-btn{padding:5px 12px;font-size:10px;font-family:'JetBrains Mono',monospace;background:rgba(13,15,20,.88);backdrop-filter:blur(6px);color:#8b90a0;border:none;cursor:pointer;transition:all .15s;border-right:1px solid rgba(255,255,255,.1)}
+.layer-btn:last-child{border-right:none}
+.layer-btn.active{background:rgba(61,142,240,.2);color:#3d8ef0}
+.layer-btn:hover:not(.active){background:rgba(255,255,255,.07);color:#e8eaf0}
 /* VOR */
 .vor-sel-row{display:flex;align-items:center;gap:6px;margin-bottom:9px}
 .vor-sel-row label{font-size:11px;color:var(--text2);white-space:nowrap}
@@ -158,7 +185,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .pa.pu:hover{background:rgba(167,139,250,.28)}
 .pa.am{background:rgba(232,160,32,.15);border:1px solid rgba(232,160,32,.35);color:#e8a020}
 .pa.am:hover{background:rgba(232,160,32,.28)}
-.map-badge{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(13,15,20,.88);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.13);border-radius:20px;padding:5px 14px;font-size:10px;color:#8b90a0;pointer-events:none;white-space:nowrap;font-family:'JetBrains Mono',monospace;z-index:999}
+/* MAP BADGE - spostato fuori dal panel altimetria */
+.map-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(13,15,20,.88);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.13);border-radius:20px;padding:5px 14px;font-size:10px;color:#8b90a0;pointer-events:none;white-space:nowrap;font-family:'JetBrains Mono',monospace;z-index:999}
 .leaflet-container{background:#1a1e28}
 .leaflet-control-zoom a{background:#13161d!important;color:#e8eaf0!important;border-color:rgba(255,255,255,.13)!important}
 .leaflet-control-zoom a:hover{background:#1a1e28!important}
@@ -171,6 +199,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
   <div class="logo">
     <div class="logo-icon">✈</div>
     <div><div class="logo-text">VFR Planner</div><div class="logo-sub">Nord Italia</div></div>
+  </div>
+  <!-- DISCLAIMER -->
+  <div class="disclaimer-banner">
+    <span class="di">⚠️</span>
+    <span class="dt">USO DIDATTICO · Solo per esercitazione PPL. Dati non verificati, non operativi. Non utilizzare per voli reali.</span>
   </div>
   <div class="tabs">
     <div class="tab active" onclick="switchTab('plan')">Piano</div>
@@ -198,8 +231,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
       <div class="tog-row"><label class="tog t2"><input type="checkbox" id="tog-apt" checked onchange="toggleApts()"><span class="tog-sl"></span></label><span class="tog-label">Aeroporti</span></div>
     </div>
     <div class="sec">
-      <div class="sec-title">Waypoint <span style="color:#555a6a;font-size:9px;text-transform:none;letter-spacing:0">(click mappa)</span></div>
+      <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Waypoint <span style="color:#555a6a;font-size:9px;text-transform:none;letter-spacing:0">(click mappa)</span></span>
+      </div>
       <div id="wplist"><div class="empty">// nessun waypoint</div></div>
+      <div class="wp-actions">
+        <button class="btn-danger" onclick="clearAllWaypoints()" title="Cancella tutti i waypoint">✕ Cancella tutti</button>
+        <span style="flex:1"></span>
+        <div class="alt-toggle-row">
+          <button class="alt-unit-btn active" id="btn-ft" onclick="setAltUnit('ft')">ft</button>
+          <button class="alt-unit-btn" id="btn-m" onclick="setAltUnit('m')">m</button>
+        </div>
+      </div>
     </div>
     <div class="sec">
       <div class="sec-title">Leg per leg</div>
@@ -303,55 +346,71 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 
 <div id="map-wrap">
   <div id="map"></div>
+  <!-- Layer switcher OSM / OFM -->
+  <div class="layer-switcher">
+    <button class="layer-btn active" id="btn-osm" onclick="setLayer('osm')">OSM</button>
+    <button class="layer-btn" id="btn-ofm" onclick="setLayer('ofm')">OFM</button>
+  </div>
+  <div class="map-badge">✦ click mappa per waypoint · trascina per riordinare · click VOR/aeroporto per dettagli</div>
   <div id="elev-panel">
     <canvas id="elev-canvas"></canvas>
     <div class="elev-overlay" id="elev-overlay">Profilo altimetrico</div>
     <div class="elev-loading" id="elev-loading" style="display:none">⟳ Caricamento elevazione...</div>
   </div>
-  <div class="map-badge">✦ click mappa per waypoint · click VOR/aeroporto per dettagli</div>
 </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// ══════════ NAVAIDS ══════════
+// ══════════ NAVAIDS (OurAirports verified + FOL aggiunto) ══════════
 const NAVAIDS=[
-  ["BGY","Bergamo","D",112.50,45.6667,9.7000,"IT"],
-  ["BLQ","Bologna","D",114.50,44.5354,11.2887,"IT"],
-  ["CLN","Calino","D",115.80,45.5500,10.0167,"IT"],
-  ["CRS","Corsico","N",330.0,45.4333,9.1000,"IT"],
-  ["FEL","Feltre","D",115.40,46.0167,11.9000,"IT"],
-  ["FRL","Forlì","D",114.40,44.1944,12.0703,"IT"],
-  ["GEN","Genova","D",113.80,44.4133,8.8375,"IT"],
-  ["LIM","Lima","D",112.50,44.0833,7.7667,"IT"],
-  ["LNV","Linate","D",114.20,45.4453,9.2764,"IT"],
-  ["MOD","Modena","N",415.0,44.6333,10.7833,"IT"],
-  ["MXP","Malpensa","D",116.20,45.6250,8.7311,"IT"],
-  ["PAD","Padova","D",115.70,45.3500,11.8333,"IT"],
-  ["PRS","Pisa","D",114.60,43.6836,10.3928,"IT"],
-  ["RIM","Rimini","D",115.20,44.0167,12.6167,"IT"],
-  ["RON","Ronchi","D",116.00,45.8167,13.4833,"IT"],
-  ["SET","Settimo","D",112.20,45.1333,7.6500,"IT"],
-  ["SRN","Saronno","D",115.00,45.6333,9.0333,"IT"],
-  ["TRE","Trento","D",115.00,46.0167,11.1167,"IT"],
-  ["TRS","Trieste","D",113.40,45.6500,13.7667,"IT"],
-  ["TUF","Torino","D",116.00,45.0833,7.6500,"IT"],
-  ["TVE","Treviso","D",115.30,45.6500,12.1833,"IT"],
-  ["UDI","Udine","D",114.10,46.0333,13.1833,"IT"],
-  ["VEN","Venezia","D",115.50,45.5053,12.3519,"IT"],
-  ["VER","Verona","D",116.60,45.3833,10.9333,"IT"],
-  ["VIC","Vicenza","D",113.60,45.5667,11.5333,"IT"],
-  ["ANC","Ancona","D",114.30,43.6167,13.3667,"IT"],
-  ["FIR","Firenze","D",116.30,43.8097,11.2047,"IT"],
-  ["ROM","Roma","D",114.90,41.6500,12.2333,"IT"],
-  ["AMB","Ambrì","D",114.50,46.5147,8.8917,"CH"],
-  ["GVA","Ginevra","D",116.15,46.2583,6.1333,"CH"],
-  ["ZUE","Zurigo","D",116.90,47.5922,8.5481,"CH"],
-  ["INN","Innsbruck","D",112.80,47.2597,11.3439,"AT"],
-  ["SBZ","Salisburgo","D",113.80,47.7933,13.0043,"AT"],
-  ["VIE","Vienna","D",113.10,48.1103,16.5697,"AT"],
-  ["LJU","Lubiana","D",112.70,46.2236,14.4576,"SI"],
-  ["NIC","Nizza","D",113.50,43.6583,7.2167,"FR"],
+  // Italia — VOR/DME verificati da OurAirports
+  ["ANC","Ancona",       "D",114.30,43.6167,13.3667,"IT"],
+  ["BGY","Bergamo",      "D",112.50,45.6667, 9.7000,"IT"],
+  ["BLQ","Bologna",      "D",114.50,44.5354,11.2887,"IT"],
+  ["BRN","Brindisi",     "D",114.70,40.6578,17.9478,"IT"],
+  ["CAG","Cagliari",     "D",115.80,39.2514, 9.0542,"IT"],
+  ["CLN","Calino",       "D",115.80,45.5500,10.0167,"IT"],
+  ["CRS","Corsico",      "N",330.0, 45.4333, 9.1000,"IT"],
+  ["CTA","Catania",      "D",116.90,37.4667,15.0664,"IT"],
+  ["FEL","Feltre",       "D",115.40,46.0167,11.9000,"IT"],
+  ["FIR","Firenze",      "D",116.30,43.8097,11.2047,"IT"],
+  ["FOL","Forlì",        "D",115.75,44.1944,12.0703,"IT"],  // ← FOL aggiunto
+  ["FRL","Forlì (old)",  "D",114.40,44.1944,12.0703,"IT"],
+  ["GEN","Genova",       "D",113.80,44.4133, 8.8375,"IT"],
+  ["LIM","Lima",         "D",112.50,44.0833, 7.7667,"IT"],
+  ["LNV","Linate",       "D",114.20,45.4453, 9.2764,"IT"],
+  ["MOD","Modena",       "N",415.0, 44.6333,10.7833,"IT"],
+  ["MXP","Malpensa",     "D",116.20,45.6250, 8.7311,"IT"],
+  ["NAP","Napoli",       "D",114.00,40.8860,14.2908,"IT"],
+  ["OLB","Olbia",        "D",113.70,40.8989, 9.5178,"IT"],
+  ["PAD","Padova",       "D",115.70,45.3500,11.8333,"IT"],
+  ["PRS","Pisa",         "D",114.60,43.6836,10.3928,"IT"],
+  ["RIM","Rimini",       "D",115.20,44.0167,12.6167,"IT"],
+  ["RON","Ronchi",       "D",116.00,45.8167,13.4833,"IT"],
+  ["ROM","Roma",         "D",114.90,41.6500,12.2333,"IT"],
+  ["SET","Settimo",      "D",112.20,45.1333, 7.6500,"IT"],
+  ["SRN","Saronno",      "D",115.00,45.6333, 9.0333,"IT"],
+  ["TRE","Trento",       "D",115.00,46.0167,11.1167,"IT"],
+  ["TRS","Trieste",      "D",113.40,45.6500,13.7667,"IT"],
+  ["TUF","Torino",       "D",116.00,45.0833, 7.6500,"IT"],
+  ["TVE","Treviso",      "D",115.30,45.6500,12.1833,"IT"],
+  ["UDI","Udine",        "D",114.10,46.0333,13.1833,"IT"],
+  ["VEN","Venezia",      "D",115.50,45.5053,12.3519,"IT"],
+  ["VER","Verona",       "D",116.60,45.3833,10.9333,"IT"],
+  ["VIC","Vicenza",      "D",113.60,45.5667,11.5333,"IT"],
+  // Svizzera
+  ["AMB","Ambrì",        "D",114.50,46.5147, 8.8917,"CH"],
+  ["GVA","Ginevra",      "D",116.15,46.2583, 6.1333,"CH"],
+  ["ZUE","Zurigo",       "D",116.90,47.5922, 8.5481,"CH"],
+  // Austria
+  ["INN","Innsbruck",    "D",112.80,47.2597,11.3439,"AT"],
+  ["SBZ","Salisburgo",   "D",113.80,47.7933,13.0043,"AT"],
+  ["VIE","Vienna",       "D",113.10,48.1103,16.5697,"AT"],
+  // Slovenia
+  ["LJU","Lubiana",      "D",112.70,46.2236,14.4576,"SI"],
+  // Francia
+  ["NIC","Nizza",        "D",113.50,43.6583, 7.2167,"FR"],
 ];
 
 const AIRPORTS=[
@@ -433,6 +492,28 @@ const FREQ_DB={
 let waypoints=[],map,markersLayer=[],polylineLayer=null;
 let vorMarkers=[],aptMarkers=[],vorVisible=true,aptVisible=true;
 let vorLineLayer=null,elevData=null;
+let altUnit='ft'; // 'ft' o 'm' — default piedi
+let currentLayer='osm';
+let osmLayer=null,ofmLayer=null;
+let dragSrcIdx=null;
+
+// ══════════ ALT UNIT ══════════
+function setAltUnit(u){
+  altUnit=u;
+  document.getElementById('btn-ft').classList.toggle('active',u==='ft');
+  document.getElementById('btn-m').classList.toggle('active',u==='m');
+  if(elevData && elevData.length) drawElevationProfile(elevData, elevData._pts||[]);
+  // ridisegna overlay label
+  updateElevOverlayLabel();
+}
+function mToFt(m){return Math.round(m*3.28084);}
+function fmtAlt(m){return altUnit==='ft'?mToFt(m)+' ft':m+' m';}
+function updateElevOverlayLabel(){
+  if(!elevData||!elevData.length)return;
+  const maxE=Math.max(...elevData),minE=Math.min(...elevData);
+  document.getElementById('elev-overlay').textContent=
+    `Profilo altimetrico · max ${fmtAlt(maxE)} · min ${fmtAlt(minE)}`;
+}
 
 // ══════════ TABS ══════════
 function switchTab(n){
@@ -445,10 +526,36 @@ function switchTab(n){
   if(n==='wx') renderMetarLinks();
 }
 
+// ══════════ LAYER SWITCHER ══════════
+function initLayers(){
+  osmLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap',maxZoom:17
+  });
+  // OpenFlightMaps — tile pubbliche
+  ofmLayer=L.tileLayer('https://nwy-tiles-api.prod.newaydata.com/tiles/{z}/{x}/{y}.png',{
+    attribution:'© <a href="https://www.openflightmaps.org" target="_blank">OpenFlightMaps</a> · © OpenStreetMap',
+    maxZoom:14,
+    opacity:1
+  });
+  osmLayer.addTo(map);
+}
+function setLayer(which){
+  currentLayer=which;
+  document.getElementById('btn-osm').classList.toggle('active',which==='osm');
+  document.getElementById('btn-ofm').classList.toggle('active',which==='ofm');
+  if(which==='osm'){
+    if(map.hasLayer(ofmLayer))map.removeLayer(ofmLayer);
+    if(!map.hasLayer(osmLayer))osmLayer.addTo(map);
+  } else {
+    if(map.hasLayer(osmLayer))map.removeLayer(osmLayer);
+    if(!map.hasLayer(ofmLayer))ofmLayer.addTo(map);
+  }
+}
+
 // ══════════ MAPPA ══════════
 function initMap(){
   map=L.map('map').setView([44.8,11.5],8);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:17}).addTo(map);
+  initLayers();
   map.on('click',e=>{
     waypoints.push({lat:e.latlng.lat,lng:e.latlng.lng,name:'WP'+(waypoints.length+1),isVor:false,isApt:false,vorFreq:null});
     renderAll();
@@ -514,6 +621,75 @@ function renderAll(){
   fetchElevation();
 }
 
+// ══════════ CANCELLA TUTTI ══════════
+function clearAllWaypoints(){
+  if(!waypoints.length)return;
+  if(!confirm('Cancellare tutti i waypoint?'))return;
+  waypoints=[];
+  renderAll();
+  document.getElementById('elev-panel').classList.remove('visible');
+}
+
+// ══════════ INSERIMENTO IN MEZZO ══════════
+function insertWaypointAfter(idx){
+  if(idx<0||idx>=waypoints.length-1)return;
+  const a=waypoints[idx],b=waypoints[idx+1];
+  const lat=(a.lat+b.lat)/2,lng=(a.lng+b.lng)/2;
+  const newWp={lat,lng,name:'WP'+String(Date.now()).slice(-3),isVor:false,isApt:false,vorFreq:null};
+  waypoints.splice(idx+1,0,newWp);
+  renderAll();
+}
+
+// ══════════ DRAG & DROP RIORDINO ══════════
+function onDragStart(e,idx){
+  dragSrcIdx=idx;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain',String(idx));
+}
+function onDragEnd(e){
+  document.querySelectorAll('.wp-item').forEach(el=>el.classList.remove('dragging','drag-over'));
+  dragSrcIdx=null;
+}
+function onDragOver(e,idx){
+  e.preventDefault();e.dataTransfer.dropEffect='move';
+  document.querySelectorAll('.wp-item').forEach(el=>el.classList.remove('drag-over'));
+  if(idx!==dragSrcIdx)e.currentTarget.classList.add('drag-over');
+}
+function onDrop(e,idx){
+  e.preventDefault();
+  if(dragSrcIdx===null||dragSrcIdx===idx)return;
+  const moved=waypoints.splice(dragSrcIdx,1)[0];
+  waypoints.splice(idx,0,moved);
+  dragSrcIdx=null;
+  renderAll();
+}
+
+// ══════════ WAYPOINT LIST con drag + insert ══════════
+function renderWpList(){
+  const el=document.getElementById('wplist');
+  if(!waypoints.length){el.innerHTML='<div class="empty">// nessun waypoint</div>';return;}
+  let html='';
+  waypoints.forEach((wp,i)=>{
+    html+=`<div class="wp-item" draggable="true"
+      ondragstart="onDragStart(event,${i})"
+      ondragend="onDragEnd(event)"
+      ondragover="onDragOver(event,${i})"
+      ondrop="onDrop(event,${i})">
+      <span class="wp-drag" title="Trascina per riordinare">⠿</span>
+      <div class="wp-num${wp.isVor?' v':wp.isApt?' a':''}">${i+1}</div>
+      <input class="wp-name-in" value="${wp.name}" onchange="waypoints[${i}].name=this.value;renderLegs();renderSummary();renderRadiali();">
+      <div class="wp-coord">${wp.lat.toFixed(4)}<br>${wp.lng.toFixed(4)}</div>
+      <button class="wp-del" onclick="waypoints.splice(${i},1);renderAll()">✕</button>
+    </div>`;
+    // Pulsante "inserisci qui" tra ogni coppia di waypoint
+    if(i<waypoints.length-1){
+      html+=`<div class="wp-insert"><button class="wp-insert-btn" onclick="insertWaypointAfter(${i})" title="Inserisci waypoint qui">+ inserisci qui</button></div>`;
+    }
+  });
+  el.innerHTML=html;
+}
+
 // ══════════ NAV CALC ══════════
 const toRad=d=>d*Math.PI/180,toDeg=r=>r*180/Math.PI;
 function nmBetween(a,b){
@@ -536,11 +712,6 @@ function calcLeg(a,b){
 }
 const fmt=h=>{const t=Math.round(h*60);return`${Math.floor(t/60)}h${String(t%60).padStart(2,'0')}m`;};
 
-function renderWpList(){
-  const el=document.getElementById('wplist');
-  if(!waypoints.length){el.innerHTML='<div class="empty">// nessun waypoint</div>';return;}
-  el.innerHTML=waypoints.map((wp,i)=>`<div class="wp-item"><div class="wp-num${wp.isVor?' v':wp.isApt?' a':''}">${i+1}</div><input class="wp-name-in" value="${wp.name}" onchange="waypoints[${i}].name=this.value;renderLegs();renderSummary();renderRadiali();"><div class="wp-coord">${wp.lat.toFixed(4)}<br>${wp.lng.toFixed(4)}</div><button class="wp-del" onclick="waypoints.splice(${i},1);renderAll()">✕</button></div>`).join('');
-}
 function renderLegs(){
   const el=document.getElementById('leglist');
   if(waypoints.length<2){el.innerHTML='<div class="empty">// servono ≥ 2 waypoint</div>';return;}
@@ -573,7 +744,7 @@ function savePlan(){
 function loadPlan(i){
   const p=JSON.parse(localStorage.getItem('vfr_plans')||'[]')[i];
   waypoints=JSON.parse(JSON.stringify(p.waypoints));
-  renderAll();
+  renderAll();  // renderAll chiama fetchElevation che ricarica il profilo
   if(p.vorSel){populateVorSelect();document.getElementById('vor-sel').value=p.vorSel;renderRadiali();}
   if(waypoints.length)map.fitBounds(L.latLngBounds(waypoints.map(w=>[w.lat,w.lng])),{padding:[60,60]});
 }
@@ -660,7 +831,6 @@ function renderMetarLinks(){
 }
 
 // ══════════ PROFILO ALTIMETRICO ══════════
-// Usa Open-Elevation API (gratuita, no key, CORS aperto)
 let elevFetchTimeout=null;
 
 function fetchElevation(){
@@ -668,7 +838,6 @@ function fetchElevation(){
     document.getElementById('elev-panel').classList.remove('visible');
     return;
   }
-  // Debounce per non chiamare ad ogni piccolo movimento
   clearTimeout(elevFetchTimeout);
   elevFetchTimeout=setTimeout(()=>doFetchElevation(),600);
 }
@@ -680,7 +849,6 @@ async function doFetchElevation(){
   loading.style.display='flex';
   elevData=null;
 
-  // Genera punti lungo la rotta (max 100 punti per non sovraccaricare l'API)
   const pts=[];
   const totalLegs=waypoints.length-1;
   const ptsPerLeg=Math.max(5,Math.floor(100/totalLegs));
@@ -691,7 +859,6 @@ async function doFetchElevation(){
       pts.push({latitude:a.lat+(b.lat-a.lat)*t,longitude:a.lng+(b.lng-a.lng)*t});
     }
   }
-  // Rimuovi duplicati
   const uniq=pts.filter((p,i)=>i===0||p.latitude!==pts[i-1].latitude||p.longitude!==pts[i-1].longitude);
 
   try{
@@ -704,6 +871,7 @@ async function doFetchElevation(){
     loading.style.display='none';
     if(data.results&&data.results.length){
       elevData=data.results.map(r=>r.elevation);
+      elevData._pts=uniq;  // salva riferimento punti
       drawElevationProfile(elevData,uniq);
     }
   }catch(e){
@@ -719,7 +887,7 @@ function drawElevationProfile(elevations,pts){
   canvas.height=panel.offsetHeight;
   const ctx=canvas.getContext('2d');
   const W=canvas.width,H=canvas.height;
-  const pad={top:20,right:15,bottom:30,left:45};
+  const pad={top:20,right:15,bottom:30,left:52};
   const iW=W-pad.left-pad.right,iH=H-pad.top-pad.bottom;
 
   const maxE=Math.max(...elevations,100);
@@ -733,21 +901,18 @@ function drawElevationProfile(elevations,pts){
   grad.addColorStop(0,'rgba(139,90,43,0.7)');
   grad.addColorStop(1,'rgba(139,90,43,0.15)');
 
-  // Profilo
   ctx.beginPath();
   elevations.forEach((e,i)=>{
     const x=pad.left+(i/(elevations.length-1))*iW;
     const y=pad.top+iH-(((e-minE)/range)*iH);
     i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
   });
-  // Chiudi il riempimento
   ctx.lineTo(pad.left+iW,H-pad.bottom);
   ctx.lineTo(pad.left,H-pad.bottom);
   ctx.closePath();
   ctx.fillStyle=grad;
   ctx.fill();
 
-  // Linea profilo
   ctx.beginPath();
   elevations.forEach((e,i)=>{
     const x=pad.left+(i/(elevations.length-1))*iW;
@@ -758,22 +923,22 @@ function drawElevationProfile(elevations,pts){
   ctx.lineWidth=1.5;
   ctx.stroke();
 
-  // Asse Y — quota
+  // Asse Y — quota in unità selezionata (ft o m)
   ctx.fillStyle='#555a6a';
   ctx.font='9px JetBrains Mono, monospace';
   ctx.textAlign='right';
   [0,0.25,0.5,0.75,1].forEach(t=>{
-    const val=Math.round(minE+range*t);
+    const valM=Math.round(minE+range*t);
+    const label=altUnit==='ft'?mToFt(valM)+'ft':valM+'m';
     const y=pad.top+iH-(t*iH);
-    ctx.fillText(val+'m',pad.left-4,y+3);
+    ctx.fillText(label,pad.left-4,y+3);
     ctx.beginPath();ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
     ctx.moveTo(pad.left,y);ctx.lineTo(pad.left+iW,y);ctx.stroke();
   });
 
-  // Asse X — waypoint markers
+  // Asse X — waypoint
   ctx.textAlign='center';
   ctx.fillStyle='#8b90a0';
-  // Calcola distanze cumulative per posizionare waypoint sull'asse X
   const legDists=[0];
   for(let i=0;i<waypoints.length-1;i++) legDists.push(legDists[i]+nmBetween(waypoints[i],waypoints[i+1]));
   const totalDist=legDists[legDists.length-1];
@@ -790,12 +955,13 @@ function drawElevationProfile(elevations,pts){
   const maxIdx=elevations.indexOf(Math.max(...elevations));
   const maxX=pad.left+(maxIdx/(elevations.length-1))*iW;
   const maxY=pad.top+iH-(((Math.max(...elevations)-minE)/range)*iH);
-  ctx.fillStyle='var(--amber,#fbbf24)';
+  ctx.fillStyle='#fbbf24';
   ctx.font='bold 9px JetBrains Mono, monospace';
   ctx.textAlign='center';
-  ctx.fillText(Math.max(...elevations)+'m',maxX,maxY-6);
+  ctx.fillText(fmtAlt(Math.max(...elevations)),maxX,maxY-6);
 
-  document.getElementById('elev-overlay').textContent=`Profilo altimetrico · max ${Math.max(...elevations)}m · min ${Math.min(...elevations)}m`;
+  document.getElementById('elev-overlay').textContent=
+    `Profilo altimetrico · max ${fmtAlt(maxE)} · min ${fmtAlt(minE)}`;
 }
 
 // ══════════ NOTAM ══════════
