@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VFR Planner</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0f14;--bg2:#13161d;--bg3:#1a1e28;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#e8eaf0;--text2:#8b90a0;--text3:#555a6a;
+  --accent:#3d8ef0;--green:#34d399;--red:#f87171;--amber:#fbbf24;
+  --vor:#e8a020;--apt:#a78bfa;--mag:#f472b6;
+  --r:8px;--font:'Syne',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px}
+#app{display:flex;height:100vh}
+#sidebar{width:345px;min-width:345px;display:flex;flex-direction:column;background:var(--bg2);border-right:1px solid var(--border)}
+#sidebar::-webkit-scrollbar{width:4px}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+#map-wrap{flex:1;position:relative;display:flex;flex-direction:column}
+#map{flex:1}
+#elev-panel{height:160px;background:var(--bg2);border-top:1px solid var(--border);position:relative;flex-shrink:0;display:none}
+#elev-panel.visible{display:block}
+#elev-canvas{width:100%;height:100%}
+.elev-overlay{position:absolute;top:8px;left:12px;font-size:10px;color:var(--text3);font-family:var(--mono)}
+.elev-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3);font-family:var(--mono)}
+.tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{flex:1;padding:9px 2px;font-size:10px;font-weight:500;text-align:center;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;transition:all .15s;text-transform:uppercase;letter-spacing:.04em}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-panel{display:none;flex-direction:column;overflow-y:auto;flex:1}
+.tab-panel.active{display:flex;flex-direction:column}
+.logo{padding:12px 15px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;flex-shrink:0}
+.logo-icon{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.logo-text{font-size:13px;font-weight:700;letter-spacing:-.02em}
+.logo-sub{font-size:9px;color:var(--text2);font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase}
+/* DISCLAIMER BANNER */
+.disclaimer-banner{background:rgba(251,191,36,.08);border-bottom:1px solid rgba(251,191,36,.25);padding:6px 14px;display:flex;align-items:flex-start;gap:6px;flex-shrink:0}
+.disclaimer-banner .di{font-size:13px;flex-shrink:0;margin-top:1px}
+.disclaimer-banner .dt{font-size:9px;color:#fbbf24;font-family:var(--mono);line-height:1.5;letter-spacing:.01em}
+.sec{padding:10px 14px;border-bottom:1px solid var(--border)}
+.sec-title{font-size:9px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.13em;margin-bottom:7px}
+.param-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.param-row label{font-size:11px;color:var(--text2)}
+.param-row input[type=number]{width:74px;font-size:11px;font-family:var(--mono);padding:3px 6px;text-align:right;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);outline:none;transition:border-color .15s}
+.param-row input[type=number]:focus{border-color:var(--accent)}
+/* WAYPOINT LIST con drag */
+.wp-item{display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid var(--border);animation:fi .18s ease;cursor:default;transition:background .1s}
+.wp-item.dragging{opacity:.4}
+.wp-item.drag-over{border-top:2px solid var(--accent)}
+@keyframes fi{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+.wp-item:last-child{border-bottom:none}
+.wp-drag{cursor:grab;color:var(--text3);font-size:13px;padding:0 2px;flex-shrink:0;user-select:none}
+.wp-drag:active{cursor:grabbing}
+.wp-num{width:19px;height:19px;border-radius:50%;color:#fff;font-size:9px;font-weight:700;font-family:var(--mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--accent)}
+.wp-num.v{background:var(--vor)}.wp-num.a{background:var(--apt)}
+.wp-name-in{font-size:11px;font-family:var(--mono);border:1px solid var(--border);border-radius:5px;background:var(--bg3);color:var(--text);padding:2px 4px;width:56px;outline:none}
+.wp-coord{font-size:9px;color:var(--text3);flex:1;font-family:var(--mono);line-height:1.3}
+.wp-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:1px 3px;border-radius:3px;transition:color .15s;line-height:1}
+.wp-del:hover{color:var(--red)}
+/* Insert-between button */
+.wp-insert{display:flex;justify-content:center;padding:1px 0}
+.wp-insert-btn{background:none;border:1px dashed var(--border2);border-radius:3px;color:var(--text3);font-size:9px;font-family:var(--mono);cursor:pointer;padding:1px 10px;transition:all .15s;width:90%}
+.wp-insert-btn:hover{border-color:var(--accent);color:var(--accent)}
+/* BARRA AZIONI WP */
+.wp-actions{display:flex;gap:5px;margin-top:7px;align-items:center}
+/* ALT TOGGLE */
+.alt-toggle-row{display:flex;align-items:center;gap:7px}
+.alt-unit-btn{font-size:9px;font-family:var(--mono);padding:2px 8px;border-radius:4px;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);transition:all .15s}
+.alt-unit-btn.active{background:rgba(61,142,240,.15);border-color:var(--accent);color:var(--accent)}
+.leg-row{padding:5px 0;border-bottom:1px solid var(--border);font-size:11px}
+.leg-row:last-child{border-bottom:none}
+.leg-title{font-weight:500;margin-bottom:2px}
+.leg-data{display:flex;flex-wrap:wrap;gap:6px}
+.leg-data span{color:var(--text2);font-size:10px}
+.leg-data span b{color:var(--text);font-weight:500;font-family:var(--mono)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.stat-card{background:var(--bg3);border-radius:var(--r);padding:7px 9px;border:1px solid var(--border)}
+.stat-card .sl{font-size:9px;color:var(--text3);margin-bottom:1px}
+.stat-card .sv{font-size:14px;font-weight:700;font-family:var(--mono)}
+.sbar{margin-top:6px;padding:5px 9px;border-radius:var(--r);font-size:11px;font-weight:500;font-family:var(--mono)}
+.sok{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:var(--green)}
+.swarn{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:var(--red)}
+.empty{font-size:11px;color:var(--text3);padding:6px 0;font-family:var(--mono)}
+.tog-row{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.tog{position:relative;width:28px;height:16px;cursor:pointer;display:inline-block}
+.tog input{opacity:0;width:0;height:0}
+.tog-sl{position:absolute;inset:0;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;transition:.2s}
+.tog-sl:before{content:'';position:absolute;width:10px;height:10px;left:2px;top:2px;background:var(--text3);border-radius:50%;transition:.2s}
+.tog input:checked+.tog-sl{background:rgba(232,160,32,.2);border-color:var(--vor)}
+.tog input:checked+.tog-sl:before{transform:translateX(12px);background:var(--vor)}
+.tog.t2 input:checked+.tog-sl{background:rgba(167,139,250,.2);border-color:var(--apt)}
+.tog.t2 input:checked+.tog-sl:before{background:var(--apt)}
+.tog-label{font-size:11px;color:var(--text2)}
+.save-row{display:flex;gap:5px;margin-top:7px}
+.save-row input{flex:1;font-size:11px;font-family:var(--mono);padding:4px 7px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);outline:none}
+.btn{padding:5px 11px;font-size:11px;font-family:var(--font);font-weight:500;background:var(--accent);color:#fff;border:none;border-radius:var(--r);cursor:pointer;transition:background .15s;white-space:nowrap}
+.btn:hover{background:#5a9ff2}
+.btn-sm{padding:2px 8px;font-size:10px;font-family:var(--mono);background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:5px;cursor:pointer;transition:all .15s}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+.btn-delsm:hover{border-color:var(--red);color:var(--red)}
+.btn-danger{padding:5px 11px;font-size:11px;font-family:var(--font);font-weight:500;background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.3);border-radius:var(--r);cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-danger:hover{background:rgba(248,113,113,.22)}
+.plan-item{display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid var(--border)}
+.plan-item:last-child{border-bottom:none}
+.plan-name{flex:1;font-size:11px;font-family:var(--mono);color:var(--text2)}
+/* LAYER SWITCHER */
+.layer-switcher{position:absolute;top:10px;right:10px;z-index:1000;display:flex;gap:0;border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,.15);box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.layer-btn{padding:5px 12px;font-size:10px;font-family:'JetBrains Mono',monospace;background:rgba(13,15,20,.88);backdrop-filter:blur(6px);color:#8b90a0;border:none;cursor:pointer;transition:all .15s;border-right:1px solid rgba(255,255,255,.1)}
+.layer-btn:last-child{border-right:none}
+.layer-btn.active{background:rgba(61,142,240,.2);color:#3d8ef0}
+.layer-btn:hover:not(.active){background:rgba(255,255,255,.07);color:#e8eaf0}
+/* VOR */
+.vor-sel-row{display:flex;align-items:center;gap:6px;margin-bottom:9px}
+.vor-sel-row label{font-size:11px;color:var(--text2);white-space:nowrap}
+.vor-sel-row select{flex:1;font-size:11px;font-family:var(--mono);padding:4px 7px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);outline:none}
+.vor-sel-row select:focus{border-color:var(--vor)}
+.vor-info{background:var(--bg3);border:1px solid rgba(232,160,32,.25);border-radius:var(--r);padding:8px 11px;margin-bottom:9px}
+.vor-info .vn{font-size:14px;font-weight:700;color:var(--vor);font-family:var(--mono)}
+.vor-info .vs{font-size:11px;color:var(--text2);margin-bottom:2px}
+.vor-info .vf{font-size:13px;font-family:var(--mono);color:var(--accent)}
+.rad-table{width:100%;border-collapse:collapse;font-size:11px}
+.rad-table th{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:500;padding:3px 5px;text-align:left;border-bottom:1px solid var(--border)}
+.rad-table td{padding:5px 5px;border-bottom:1px solid var(--border);vertical-align:middle}
+.rad-table tr:last-child td{border-bottom:none}
+.rad-val{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--vor)}
+.rad-dist{font-family:var(--mono);font-size:10px;color:var(--text3)}
+/* FREQ */
+.freq-table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:4px}
+.freq-table th{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:3px 5px;text-align:left;border-bottom:1px solid var(--border);font-weight:500}
+.freq-table td{padding:4px 5px;border-bottom:1px solid var(--border);vertical-align:middle}
+.freq-table tr:last-child td{border-bottom:none}
+.freq-table td:nth-child(2){font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent)}
+.ftb{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-family:var(--mono);font-weight:500}
+.fc{background:rgba(61,142,240,.15);border:1px solid rgba(61,142,240,.25);color:#3d8ef0}
+.fa{background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.25);color:#a78bfa}
+.fi2{background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.25);color:#34d399}
+.ft{background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.25);color:#f87171}
+.fn{background:rgba(232,160,32,.15);border:1px solid rgba(232,160,32,.25);color:#e8a020}
+.freq-hint{font-size:10px;color:var(--text3);font-family:var(--mono);line-height:1.5;margin-bottom:8px}
+/* METAR links */
+.metar-link-btn{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);text-decoration:none;color:var(--text);margin-bottom:7px;transition:border-color .15s;cursor:pointer}
+.metar-link-btn:hover{border-color:var(--accent)}
+.metar-link-btn .ml-icon{font-size:20px;flex-shrink:0}
+.metar-link-btn .ml-title{font-size:12px;font-weight:600}
+.metar-link-btn .ml-sub{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.icao-hint{font-size:10px;color:var(--text3);font-family:var(--mono);line-height:1.5;margin-bottom:10px}
+.icao-quick-row{display:flex;gap:5px;margin-bottom:7px;flex-wrap:wrap}
+.icao-quick-btn{padding:4px 9px;font-size:11px;font-family:var(--mono);background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text2);cursor:pointer;transition:all .15s}
+.icao-quick-btn:hover{border-color:var(--apt);color:var(--apt)}
+.icao-input-row{display:flex;gap:5px}
+.icao-input-row input{flex:1;font-size:12px;font-family:var(--mono);padding:5px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);outline:none;text-transform:uppercase}
+.icao-input-row input:focus{border-color:var(--accent)}
+/* NOTAM */
+.notam-link{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);text-decoration:none;color:var(--text);margin-bottom:8px;transition:border-color .15s}
+.notam-link:hover{border-color:var(--accent)}
+.notam-link .lt{font-size:12px;font-weight:500}
+.notam-link .ls{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.npaste{width:100%;min-height:90px;font-size:10px;font-family:var(--mono);padding:7px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);resize:vertical;outline:none;line-height:1.6}
+.npaste:focus{border-color:var(--accent)}
+.nitem{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;margin-bottom:6px}
+.nitem.nw{border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.04)}
+.nitem.ni{border-color:rgba(61,142,240,.25);background:rgba(61,142,240,.04)}
+.nhdr{display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap}
+.nid{font-size:11px;font-weight:700;color:var(--amber);font-family:var(--mono)}
+.nloc{font-size:10px;color:var(--apt);font-family:var(--mono)}
+.ntype{font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,.07);color:var(--text2);font-family:var(--mono)}
+.nbody{color:var(--text2);line-height:1.6;font-family:var(--mono);font-size:10px}
+.ntimes{font-size:9px;color:var(--text3);margin-top:4px;font-family:var(--mono)}
+
+/* PRESET AEREI */
+.preset-item{display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid var(--border)}
+.preset-item:last-child{border-bottom:none}
+.preset-name{flex:1;font-size:11px;font-family:var(--mono);color:var(--text2)}
+.preset-reg{font-size:9px;font-family:var(--mono);color:var(--text3)}
+/* NOTAM LIVE */
+.notam-live-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.notam-live-item:hover{border-color:var(--accent)}
+.notam-live-item.nw{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.04)}
+.notam-live-stn{font-size:11px;font-weight:700;color:var(--amber);font-family:var(--mono);margin-bottom:3px}
+.notam-live-body{font-size:10px;font-family:var(--mono);color:var(--text2);line-height:1.5}
+.notam-live-times{font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:3px}
+.notam-loading{font-size:11px;color:var(--text3);font-family:var(--mono);padding:6px 0}
+
+/* POPUP SPAZI AEREI / NOTAM PUNTO */
+.airspace-popup .leaflet-popup-content-wrapper{background:#13161d;border:1px solid rgba(255,255,255,.14);border-radius:10px;box-shadow:0 6px 30px rgba(0,0,0,.6);color:#e8eaf0;min-width:280px;max-width:340px}
+.airspace-popup .leaflet-popup-tip{background:#13161d}
+.airspace-popup .leaflet-popup-content{margin:12px 14px;font-family:'JetBrains Mono',monospace;font-size:12px}
+.asp-header{font-size:13px;font-weight:700;color:#e8eaf0;margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid rgba(255,255,255,.1)}
+.asp-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.asp-row:last-child{border-bottom:none}
+.asp-badge{min-width:34px;text-align:center;padding:2px 5px;border-radius:4px;font-size:10px;font-weight:700;flex-shrink:0}
+.asp-name{flex:1;font-size:11px;color:#c8cad4}
+.asp-verts{text-align:right;font-size:10px;color:#6b7280;line-height:1.4;flex-shrink:0}
+.asp-notam-section{margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1)}
+.asp-notam-title{font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.asp-notam-item{background:rgba(255,255,255,.04);border-radius:5px;padding:5px 7px;margin-bottom:4px;font-size:10px;color:#8b90a0;line-height:1.5}
+.asp-notam-item.warn{background:rgba(251,191,36,.08);border-left:2px solid #fbbf24;color:#d4a843}
+.asp-notam-id{font-weight:700;color:#fbbf24;margin-right:4px}
+.asp-actions{display:flex;gap:6px;margin-top:10px}
+.asp-btn{flex:1;padding:5px 0;font-size:10px;font-family:'JetBrains Mono',monospace;border-radius:5px;cursor:pointer;border:none;transition:all .15s;text-align:center}
+.asp-btn-add{background:rgba(61,142,240,.15);border:1px solid rgba(61,142,240,.35);color:#3d8ef0}
+.asp-btn-add:hover{background:rgba(61,142,240,.28)}
+.asp-btn-close{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#8b90a0}
+.asp-btn-close:hover{background:rgba(255,255,255,.12)}
+
+/* POPUPS */
+.vp .leaflet-popup-content-wrapper,.ap .leaflet-popup-content-wrapper{background:#13161d;border:1px solid rgba(255,255,255,.14);border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5);color:#e8eaf0}
+.vp .leaflet-popup-tip,.ap .leaflet-popup-tip{background:#13161d}
+.vp .leaflet-popup-content,.ap .leaflet-popup-content{margin:10px 13px;font-family:'JetBrains Mono',monospace;font-size:12px}
+.pb{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:500;margin-bottom:5px}
+.pn{font-size:15px;font-weight:700;color:#e8eaf0;margin-bottom:2px}
+.ps{color:#8b90a0;margin-bottom:5px;font-size:11px}
+.pa{display:block;width:100%;padding:5px 0;margin-top:5px;text-align:center;border:none;border-radius:5px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;transition:all .15s}
+.pa.bl{background:rgba(61,142,240,.15);border:1px solid rgba(61,142,240,.35);color:#3d8ef0}
+.pa.bl:hover{background:rgba(61,142,240,.28)}
+.pa.pu{background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.35);color:#a78bfa}
+.pa.pu:hover{background:rgba(167,139,250,.28)}
+.pa.am{background:rgba(232,160,32,.15);border:1px solid rgba(232,160,32,.35);color:#e8a020}
+.pa.am:hover{background:rgba(232,160,32,.28)}
+/* MAP BADGE - spostato fuori dal panel altimetria */
+.map-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(13,15,20,.88);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.13);border-radius:20px;padding:5px 14px;font-size:10px;color:#8b90a0;pointer-events:none;white-space:nowrap;font-family:'JetBrains Mono',monospace;z-index:999}
+
+.leaflet-tooltip.airspace-tooltip{background:rgba(13,15,20,.92);border:1px solid rgba(255,255,255,.15);color:#e8eaf0;border-radius:6px;padding:5px 9px;font-size:11px;box-shadow:0 2px 10px rgba(0,0,0,.5)}
+.leaflet-container{background:#1a1e28}
+.leaflet-control-zoom a{background:#13161d!important;color:#e8eaf0!important;border-color:rgba(255,255,255,.13)!important}
+.leaflet-control-zoom a:hover{background:#1a1e28!important}
+.leaflet-control-attribution{background:rgba(13,15,20,.7)!important;color:#555a6a!important}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="sidebar">
+  <div class="logo">
+    <div class="logo-icon">✈</div>
+    <div><div class="logo-text">VFR Planner</div><div class="logo-sub">Nord Italia</div></div>
+  </div>
+  <!-- DISCLAIMER -->
+  <div class="disclaimer-banner">
+    <span class="di">⚠️</span>
+    <span class="dt">USO DIDATTICO · Solo per esercitazione PPL. Dati non verificati, non operativi. Non utilizzare per voli reali.</span>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('plan')">Piano</div>
+    <div class="tab" onclick="switchTab('vor')">VOR/RAD</div>
+    <div class="tab" onclick="switchTab('freq')">Freq.</div>
+    <div class="tab" onclick="switchTab('wx')">METAR</div>
+    <div class="tab" onclick="switchTab('notam')">NOTAM</div>
+  </div>
+
+  <!-- PIANO -->
+  <div class="tab-panel active" id="tab-plan">
+    <div class="sec">
+      <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Parametri aereo</span>
+        <select id="preset-sel" onchange="loadPreset(this.value)" style="font-size:9px;font-family:var(--mono);background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text2);padding:2px 5px;cursor:pointer">
+          <option value="">— preset —</option>
+        </select>
+      </div>
+      <div class="param-row"><label>TAS (kt)</label><input type="number" id="tas" value="100" min="50" max="300"></div>
+      <div class="param-row"><label>Consumo (l/h)</label><input type="number" id="fph" value="30" min="5" max="200"></div>
+      <div class="param-row"><label>Carburante a bordo (l)</label><input type="number" id="fob" value="100" min="0" max="500"></div>
+      <div class="param-row"><label>Riserva (l)</label><input type="number" id="fres" value="15" min="0" max="100"></div>
+      <div class="param-row"><label>Vento direzione (°)</label><input type="number" id="wdir" value="0" min="0" max="359"></div>
+      <div class="param-row"><label>Vento velocità (kt)</label><input type="number" id="wspd" value="0" min="0" max="100"></div>
+      <div class="param-row"><label>Variazione magnetica (°)</label><input type="number" id="mvar" value="2" min="-30" max="30"></div>
+      <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
+        <div class="sec-title" style="margin-bottom:6px">Salva preset aereo</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px">
+          <input id="preset-reg" placeholder="I-LUBA" maxlength="8" style="width:72px;font-size:11px;font-family:var(--mono);padding:3px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);outline:none" oninput="this.value=this.value.toUpperCase()">
+          <input id="preset-model" placeholder="C150" maxlength="12" style="flex:1;font-size:11px;font-family:var(--mono);padding:3px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);outline:none" oninput="this.value=this.value.toUpperCase()">
+          <button class="btn" onclick="savePreset()">+</button>
+        </div>
+        <div id="preset-list"><div class="empty" style="font-size:10px">// nessun preset</div></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Overlay mappa</div>
+      <div class="tog-row"><label class="tog"><input type="checkbox" id="tog-vor" checked onchange="toggleVORs()"><span class="tog-sl"></span></label><span class="tog-label">VOR / VOR-DME / NDB</span></div>
+      <div class="tog-row"><label class="tog t2"><input type="checkbox" id="tog-apt" checked onchange="toggleApts()"><span class="tog-sl"></span></label><span class="tog-label">Aeroporti</span></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Waypoint <span style="color:#555a6a;font-size:9px;text-transform:none;letter-spacing:0">(click mappa)</span></span>
+      </div>
+      <div id="wplist"><div class="empty">// nessun waypoint</div></div>
+      <div class="wp-actions">
+        <button class="btn-danger" onclick="clearAllWaypoints()" title="Cancella tutti i waypoint">✕ Cancella tutti</button>
+        <span style="flex:1"></span>
+        <div class="alt-toggle-row">
+          <button class="alt-unit-btn active" id="btn-ft" onclick="setAltUnit('ft')">ft</button>
+          <button class="alt-unit-btn" id="btn-m" onclick="setAltUnit('m')">m</button>
+        </div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Leg per leg</div>
+      <div id="leglist"><div class="empty">// servono ≥ 2 waypoint</div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Riepilogo volo</div>
+      <div id="summary"><div class="empty">// aggiungi waypoint</div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Piani salvati</div>
+      <div id="savedplans"><div class="empty">// nessun piano salvato</div></div>
+      <div class="save-row"><input id="pname" placeholder="nome piano..."><button class="btn" onclick="savePlan()">Salva</button></div>
+    </div>
+  </div>
+
+  <!-- VOR/RAD -->
+  <div class="tab-panel" id="tab-vor">
+    <div class="sec">
+      <div class="sec-title">VOR di riferimento</div>
+      <div class="vor-sel-row">
+        <label>VOR</label>
+        <select id="vor-sel" onchange="renderRadiali()"><option value="">— scegli VOR —</option></select>
+      </div>
+      <div id="vor-info"></div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:7px;line-height:1.5">QDR = radiale magnetica dal VOR al waypoint.<br>Linea magenta sulla mappa.</div>
+      <div id="rad-wrap"><div class="empty">// scegli VOR e aggiungi waypoint</div></div>
+    </div>
+  </div>
+
+  <!-- FREQUENZE -->
+  <div class="tab-panel" id="tab-freq">
+    <div class="sec">
+      <div class="sec-title">Frequenze automatiche in rotta</div>
+      <div class="freq-hint">Calcolate in base ai waypoint della rotta.</div>
+      <div id="freq-auto"><div class="empty">// nessun waypoint nella rotta</div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">VOR in rotta</div>
+      <div id="freq-vor"><div class="empty">// nessun VOR aggiunto come waypoint</div></div>
+    </div>
+  </div>
+
+  <!-- METAR -->
+  <div class="tab-panel" id="tab-wx">
+    <div class="sec">
+      <div class="sec-title">METAR / TAF</div>
+      <div class="icao-hint">
+        Seleziona un aeroporto dalla rotta oppure inserisci il codice ICAO per aprire direttamente il METAR su aviationweather.gov.
+      </div>
+      <div id="metar-apt-links"><div class="empty">// aggiungi aeroporti come waypoint per i link rapidi</div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Cerca ICAO manuale</div>
+      <div class="icao-input-row">
+        <input id="icao-manual" placeholder="es. LIPR" maxlength="4" oninput="this.value=this.value.toUpperCase()">
+        <button class="btn" onclick="openMetarManual()">Apri</button>
+      </div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:7px;line-height:1.5">
+        Apre aviationweather.gov con METAR e TAF aggiornati in tempo reale.
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Link diretti</div>
+      <a class="metar-link-btn" href="https://aviationweather.gov/metar" target="_blank">
+        <span class="ml-icon">🌤</span>
+        <div><div class="ml-title">AviationWeather.gov — METAR</div><div class="ml-sub">aviationweather.gov/metar</div></div>
+      </a>
+      <a class="metar-link-btn" href="https://aviationweather.gov/taf" target="_blank">
+        <span class="ml-icon">📋</span>
+        <div><div class="ml-title">AviationWeather.gov — TAF</div><div class="ml-sub">aviationweather.gov/taf</div></div>
+      </a>
+      <a class="metar-link-btn" href="https://www.enav.it/it/meteo.html" target="_blank">
+        <span class="ml-icon">🇮🇹</span>
+        <div><div class="ml-title">ENAV Meteo</div><div class="ml-sub">enav.it — meteo aeronautico Italia</div></div>
+      </a>
+    </div>
+  </div>
+
+  <!-- NOTAM -->
+  <div class="tab-panel" id="tab-notam">
+    <div class="sec">
+      <div class="sec-title">NOTAM live rotta</div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:6px;line-height:1.5">
+        NOTAM aggiornati per gli aeroporti nella rotta · fonte: aviationweather.gov
+      </div>
+      <div id="notam-live-list"><div class="empty">// aggiungi aeroporti come waypoint</div></div>
+      <button class="btn" style="width:100%;margin-top:7px" onclick="fetchNotamLive()">⟳ Aggiorna NOTAM</button>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Portale NOTAM</div>
+      <a class="notam-link" href="https://www.deskaeronautico.it/mappa/" target="_blank">
+        <span style="font-size:20px">🗺</span>
+        <div><div class="lt">Desk Aeronautico</div><div class="ls">deskaeronautico.it/mappa</div></div>
+      </a>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Incolla NOTAM</div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:6px;line-height:1.5">Incolla il testo dal portale per analizzarlo.</div>
+      <textarea class="npaste" id="notam-input" placeholder="Incolla qui il NOTAM..."></textarea>
+      <button class="btn" style="width:100%;margin-top:6px" onclick="parseNotam()">Analizza NOTAM</button>
+    </div>
+    <div class="sec" style="flex:1">
+      <div class="sec-title">NOTAM analizzati</div>
+      <div id="notam-list"><div class="empty">// nessun NOTAM analizzato</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="map-wrap">
+  <div id="map"></div>
+  <!-- Layer switcher OSM / VFR chart -->
+  <div class="layer-switcher">
+    <button class="layer-btn active" id="btn-osm" onclick="setLayer('osm')" title="OpenStreetMap">OSM</button>
+    <button class="layer-btn" id="btn-ofm" onclick="setLayer('vfr')" title="OSM + OpenAIP (spazi aerei, aeroporti, navaids)">OpenAIP</button>
+  </div>
+  <div class="map-badge">✦ click = waypoint · tasto destro = spazi aerei & NOTAM · trascina per riordinare</div>
+  <div id="elev-panel">
+    <canvas id="elev-canvas"></canvas>
+    <div class="elev-overlay" id="elev-overlay">Profilo altimetrico</div>
+    <div class="elev-loading" id="elev-loading" style="display:none">⟳ Caricamento elevazione...</div>
+  </div>
+</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// Carica dati spazi aerei reali (file separato)
+// Se non trovato, usa array vuoto e mostra avviso
+window.AIRSPACES_IT = null;
+</script>
+<script src="airspaces_it.js" onerror="console.warn('airspaces_it.js non trovato - spazi aerei non disponibili')"></script>
+<script>
+// ══════════ NAVAIDS (OurAirports verified + FOL aggiunto) ══════════
+const NAVAIDS=[
+  // Italia — VOR/DME verificati da OurAirports
+  ["ANC","Ancona",       "D",114.30,43.6167,13.3667,"IT"],
+  ["BGY","Bergamo",      "D",112.50,45.6667, 9.7000,"IT"],
+  ["BLQ","Bologna",      "D",114.50,44.5354,11.2887,"IT"],
+  ["BRN","Brindisi",     "D",114.70,40.6578,17.9478,"IT"],
+  ["CAG","Cagliari",     "D",115.80,39.2514, 9.0542,"IT"],
+  ["CLN","Calino",       "D",115.80,45.5500,10.0167,"IT"],
+  ["CRS","Corsico",      "N",330.0, 45.4333, 9.1000,"IT"],
+  ["CTA","Catania",      "D",116.90,37.4667,15.0664,"IT"],
+  ["FEL","Feltre",       "D",115.40,46.0167,11.9000,"IT"],
+  ["FIR","Firenze",      "D",116.30,43.8097,11.2047,"IT"],
+  ["FOL","Forlì",        "D",115.75,44.1944,12.0703,"IT"],  // ← FOL aggiunto
+  ["FRL","Forlì (old)",  "D",114.40,44.1944,12.0703,"IT"],
+  ["GEN","Genova",       "D",113.80,44.4133, 8.8375,"IT"],
+  ["LIM","Lima",         "D",112.50,44.0833, 7.7667,"IT"],
+  ["LNV","Linate",       "D",114.20,45.4453, 9.2764,"IT"],
+  ["MOD","Modena",       "N",415.0, 44.6333,10.7833,"IT"],
+  ["MXP","Malpensa",     "D",116.20,45.6250, 8.7311,"IT"],
+  ["NAP","Napoli",       "D",114.00,40.8860,14.2908,"IT"],
+  ["OLB","Olbia",        "D",113.70,40.8989, 9.5178,"IT"],
+  ["PAD","Padova",       "D",115.70,45.3500,11.8333,"IT"],
+  ["PRS","Pisa",         "D",114.60,43.6836,10.3928,"IT"],
+  ["RIM","Rimini",       "D",115.20,44.0167,12.6167,"IT"],
+  ["RON","Ronchi",       "D",116.00,45.8167,13.4833,"IT"],
+  ["ROM","Roma",         "D",114.90,41.6500,12.2333,"IT"],
+  ["SET","Settimo",      "D",112.20,45.1333, 7.6500,"IT"],
+  ["SRN","Saronno",      "D",115.00,45.6333, 9.0333,"IT"],
+  ["TRE","Trento",       "D",115.00,46.0167,11.1167,"IT"],
+  ["TRS","Trieste",      "D",113.40,45.6500,13.7667,"IT"],
+  ["TUF","Torino",       "D",116.00,45.0833, 7.6500,"IT"],
+  ["TVE","Treviso",      "D",115.30,45.6500,12.1833,"IT"],
+  ["UDI","Udine",        "D",114.10,46.0333,13.1833,"IT"],
+  ["VEN","Venezia",      "D",115.50,45.5053,12.3519,"IT"],
+  ["VER","Verona",       "D",116.60,45.3833,10.9333,"IT"],
+  ["VIC","Vicenza",      "D",113.60,45.5667,11.5333,"IT"],
+  // Svizzera
+  ["AMB","Ambrì",        "D",114.50,46.5147, 8.8917,"CH"],
+  ["GVA","Ginevra",      "D",116.15,46.2583, 6.1333,"CH"],
+  ["ZUE","Zurigo",       "D",116.90,47.5922, 8.5481,"CH"],
+  // Austria
+  ["INN","Innsbruck",    "D",112.80,47.2597,11.3439,"AT"],
+  ["SBZ","Salisburgo",   "D",113.80,47.7933,13.0043,"AT"],
+  ["VIE","Vienna",       "D",113.10,48.1103,16.5697,"AT"],
+  // Slovenia
+  ["LJU","Lubiana",      "D",112.70,46.2236,14.4576,"SI"],
+  // Francia
+  ["NIC","Nizza",        "D",113.50,43.6583, 7.2167,"FR"],
+];
+
+const AIRPORTS=[
+  ["LIML","Linate","Milano",45.4453,9.2764],
+  ["LIMC","Malpensa","Milano",45.6306,8.7281],
+  ["LIME","Orio al Serio","Bergamo",45.6739,9.7042],
+  ["LIPX","Villafranca","Verona",45.3958,10.8886],
+  ["LIPB","Bolzano","Bolzano",46.4603,11.3264],
+  ["LIPH","Treviso","Treviso",45.6483,12.1944],
+  ["LIPZ","Marco Polo","Venezia",45.5053,12.3519],
+  ["LIPU","Padova","Padova",45.3958,11.8472],
+  ["LIPK","Forlì","Forlì",44.1944,12.0703],
+  ["LIPY","Falconara","Ancona",43.6164,13.3622],
+  ["LIPE","Borgo Panigale","Bologna",44.5354,11.2887],
+  ["LIPQ","Ronchi","Trieste",45.8275,13.4722],
+  ["LIPR","Miramare","Rimini",44.0203,12.6117],
+  ["LIRZ","Perugia","Perugia",43.0958,12.5133],
+  ["LIRF","Fiumicino","Roma",41.8003,12.2389],
+  ["LIRA","Ciampino","Roma",41.7994,12.5947],
+  ["LIRN","Capodichino","Napoli",40.8860,14.2908],
+  ["LICC","Fontanarossa","Catania",37.4667,15.0664],
+  ["LIEO","Costa Smeralda","Olbia",40.8989,9.5178],
+  ["LIEE","Elmas","Cagliari",39.2514,9.0542],
+  ["LIRQ","Peretola","Firenze",43.8100,11.2050],
+  ["LIMP","Parma","Parma",44.8244,10.2964],
+  ["LSZH","Zurigo","Zurigo",47.4647,8.5492],
+  ["LSGG","Ginevra","Ginevra",46.2381,6.1089],
+  ["LOWW","Schwechat","Vienna",48.1103,16.5697],
+  ["LOWI","Innsbruck","Innsbruck",47.2597,11.3439],
+  ["LJLJ","Brnik","Lubiana",46.2236,14.4576],
+  ["LFMN","Nice","Nizza",43.6653,7.2150],
+];
+
+const FIR_ZONES=[
+  {id:"FIR_MIL",name:"Milano ACC/FIR",  latMin:43.8,latMax:47.5,lngMin:6.5, lngMax:11.5},
+  {id:"FIR_PAD",name:"Padova ACC/FIR",  latMin:43.8,latMax:47.5,lngMin:11.5,lngMax:14.5},
+  {id:"FIR_GEN",name:"Genova ACC/FIR",  latMin:42.5,latMax:45.5,lngMin:6.5, lngMax:9.5},
+  {id:"FIR_ROM",name:"Roma ACC/FIR",    latMin:40.0,latMax:43.8,lngMin:9.5, lngMax:15.5},
+];
+const APT_ZONES=[
+  {id:"LIDC",latMin:44.05,latMax:44.35,lngMin:12.00,lngMax:12.40},
+  {id:"LIDR",latMin:44.25,latMax:44.55,lngMin:12.05,lngMax:12.35},
+  {id:"LIPS",latMin:44.80,latMax:45.10,lngMin:9.60, lngMax:10.00},
+  {id:"LIPT",latMin:44.95,latMax:45.20,lngMin:10.70,lngMax:11.10},
+];
+const FREQ_DB={
+  FIR_MIL:[{n:"Milano ACC",f:"127.875",t:"COM"},{n:"Milano ACC",f:"131.725",t:"COM"},{n:"Milano FIS",f:"130.825",t:"COM"}],
+  FIR_PAD:[{n:"Padova ACC",f:"120.425",t:"COM"},{n:"Padova ACC",f:"124.325",t:"COM"},{n:"Padova FIS",f:"124.175",t:"COM"}],
+  FIR_GEN:[{n:"Genova ACC",f:"127.500",t:"COM"},{n:"Genova FIS",f:"124.600",t:"COM"}],
+  FIR_ROM:[{n:"Roma ACC",f:"124.900",t:"COM"},{n:"Roma ACC",f:"132.675",t:"COM"}],
+  LIML:[{n:"Linate TWR",f:"118.100",t:"TWR"},{n:"Linate APP",f:"119.600",t:"APP"},{n:"Linate ATIS",f:"123.875",t:"ATIS"}],
+  LIMC:[{n:"Malpensa TWR",f:"119.725",t:"TWR"},{n:"Malpensa APP",f:"120.625",t:"APP"},{n:"Malpensa ATIS",f:"126.750",t:"ATIS"}],
+  LIME:[{n:"Orio TWR",f:"119.300",t:"TWR"},{n:"Orio APP",f:"120.975",t:"APP"},{n:"Orio ATIS",f:"121.900",t:"ATIS"}],
+  LIPX:[{n:"Verona TWR",f:"118.050",t:"TWR"},{n:"Verona APP",f:"119.750",t:"APP"},{n:"Verona ATIS",f:"128.425",t:"ATIS"}],
+  LIPZ:[{n:"Venezia TWR",f:"118.050",t:"TWR"},{n:"Venezia APP",f:"119.100",t:"APP"},{n:"Venezia ATIS",f:"127.500",t:"ATIS"}],
+  LIPH:[{n:"Treviso TWR",f:"118.375",t:"TWR"},{n:"Treviso APP",f:"119.450",t:"APP"}],
+  LIPU:[{n:"Padova TWR",f:"118.100",t:"TWR"},{n:"Padova INFO",f:"118.100",t:"INFO"}],
+  LIPE:[{n:"Bologna TWR",f:"118.300",t:"TWR"},{n:"Bologna APP",f:"119.700",t:"APP"},{n:"Bologna ATIS",f:"121.700",t:"ATIS"}],
+  LIMP:[{n:"Parma TWR",f:"118.200",t:"TWR"},{n:"Parma INFO",f:"130.450",t:"INFO"}],
+  LIPK:[{n:"Forlì TWR",f:"119.750",t:"TWR"},{n:"Forlì APP",f:"119.750",t:"APP"}],
+  LIPR:[{n:"Rimini TWR",f:"131.225",t:"TWR"},{n:"Rimini APP",f:"123.500",t:"APP"},{n:"Rimini ATIS",f:"127.900",t:"ATIS"}],
+  LIPY:[{n:"Ancona TWR",f:"118.200",t:"TWR"},{n:"Ancona APP",f:"120.600",t:"APP"}],
+  LIPQ:[{n:"Trieste TWR",f:"118.000",t:"TWR"},{n:"Trieste APP",f:"119.600",t:"APP"}],
+  LIPB:[{n:"Bolzano TWR",f:"118.100",t:"TWR"},{n:"Bolzano INFO",f:"123.500",t:"INFO"}],
+  LIRQ:[{n:"Firenze TWR",f:"119.350",t:"TWR"},{n:"Firenze APP",f:"120.050",t:"APP"}],
+  LIRF:[{n:"Roma TWR",f:"119.200",t:"TWR"},{n:"Roma APP",f:"119.900",t:"APP"},{n:"Roma ATIS",f:"121.800",t:"ATIS"}],
+  LIRN:[{n:"Napoli TWR",f:"118.000",t:"TWR"},{n:"Napoli APP",f:"120.175",t:"APP"}],
+  LSZH:[{n:"Zurigo TWR",f:"118.100",t:"TWR"},{n:"Zurigo APP",f:"118.000",t:"APP"}],
+  LOWW:[{n:"Vienna TWR",f:"119.400",t:"TWR"},{n:"Vienna APP",f:"121.200",t:"APP"}],
+  LOWI:[{n:"Innsbruck TWR",f:"119.700",t:"TWR"},{n:"Innsbruck APP",f:"119.175",t:"APP"}],
+  LJLJ:[{n:"Lubiana TWR",f:"118.000",t:"TWR"},{n:"Lubiana APP",f:"119.000",t:"APP"}],
+  LIDC:[{n:"Cervia TWR",f:"124.900",t:"TWR"},{n:"Cervia Avvic.",f:"133.775",t:"APP"}],
+  LIDR:[{n:"Ravenna INFO",f:"122.300",t:"INFO"}],
+  LIPS:[{n:"Piacenza TWR",f:"118.300",t:"TWR"},{n:"Piacenza INFO",f:"122.100",t:"INFO"}],
+  LIPT:[{n:"Mantova TWR",f:"118.200",t:"TWR"}],
+  _UNIV:[{n:"Emergenza",f:"121.500",t:"COM"},{n:"VFR Comune",f:"123.450",t:"COM"}],
+};
+
+let waypoints=[],map,markersLayer=[],polylineLayer=null;
+let vorMarkers=[],aptMarkers=[],vorVisible=true,aptVisible=true;
+let vorLineLayer=null,elevData=null,openAipLayer=null;
+let altUnit='ft'; // 'ft' o 'm' — default piedi
+let currentLayer='osm';
+let osmLayer=null,ofmLayer=null;
+let dragSrcIdx=null;
+
+// ══════════ ALT UNIT ══════════
+function setAltUnit(u){
+  altUnit=u;
+  document.getElementById('btn-ft').classList.toggle('active',u==='ft');
+  document.getElementById('btn-m').classList.toggle('active',u==='m');
+  if(elevData && elevData.length) drawElevationProfile(elevData, elevData._pts||[]);
+  // ridisegna overlay label
+  updateElevOverlayLabel();
+}
+function mToFt(m){return Math.round(m*3.28084);}
+function fmtAlt(m){return altUnit==='ft'?mToFt(m)+' ft':m+' m';}
+function updateElevOverlayLabel(){
+  if(!elevData||!elevData.length)return;
+  const maxE=Math.max(...elevData),minE=Math.min(...elevData);
+  document.getElementById('elev-overlay').textContent=
+    `Profilo altimetrico · max ${fmtAlt(maxE)} · min ${fmtAlt(minE)}`;
+}
+
+// ══════════ TABS ══════════
+function switchTab(n){
+  ['plan','vor','freq','wx','notam'].forEach((t,i)=>{
+    document.querySelectorAll('.tab')[i].classList.toggle('active',t===n);
+    document.getElementById('tab-'+t).classList.toggle('active',t===n);
+  });
+  if(n==='vor'){populateVorSelect();renderRadiali();}
+  if(n==='freq') renderFreqAuto();
+  if(n==='wx') renderMetarLinks();
+  if(n==='notam') fetchNotamLive();
+}
+
+// ══════════ SPAZI AEREI (GeoJSON locale — uso didattico PPL) ══════════
+// Dati approssimati. Non usare per navigazione reale.
+const AIRSPACES=[
+  {id:"CTR_Malpensa",name:"CTR Malpensa",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[45.79727, 8.7281], [45.79406, 8.7746], [45.78458, 8.81931], [45.76918, 8.86051], [45.74845, 8.89663], [45.7232, 8.92627], [45.69438, 8.9483], [45.66312, 8.96186], [45.6306, 8.96644], [45.59808, 8.96186], [45.56682, 8.9483], [45.538, 8.92627], [45.51275, 8.89663], [45.49202, 8.86051], [45.47662, 8.81931], [45.46714, 8.7746], [45.46393, 8.7281], [45.46714, 8.6816], [45.47662, 8.63689], [45.49202, 8.59569], [45.51275, 8.55957], [45.538, 8.52993], [45.56682, 8.5079], [45.59808, 8.49434], [45.6306, 8.48976], [45.66312, 8.49434], [45.69438, 8.5079], [45.7232, 8.52993], [45.74845, 8.55957], [45.76918, 8.59569], [45.78458, 8.63689], [45.79406, 8.6816]]},
+  {id:"CTR_Linate",name:"CTR Linate",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[45.57863, 9.2764], [45.57607, 9.31348], [45.56848, 9.34913], [45.55616, 9.38198], [45.53958, 9.41078], [45.51938, 9.43442], [45.49632, 9.45198], [45.47131, 9.46279], [45.4453, 9.46644], [45.41929, 9.46279], [45.39428, 9.45198], [45.37122, 9.43442], [45.35102, 9.41078], [45.33444, 9.38198], [45.32212, 9.34913], [45.31453, 9.31348], [45.31197, 9.2764], [45.31453, 9.23932], [45.32212, 9.20367], [45.33444, 9.17082], [45.35102, 9.14202], [45.37122, 9.11838], [45.39428, 9.10082], [45.41929, 9.09001], [45.4453, 9.08636], [45.47131, 9.09001], [45.49632, 9.10082], [45.51938, 9.11838], [45.53958, 9.14202], [45.55616, 9.17082], [45.56848, 9.20367], [45.57607, 9.23932]]},
+  {id:"CTR_Bergamo",name:"CTR Bergamo",cls:"D",floor:"SFC",ceil:"2000ft",coords:[[45.80723, 9.7042], [45.80467, 9.74143], [45.79708, 9.77722], [45.78476, 9.81021], [45.76818, 9.83913], [45.74798, 9.86286], [45.72492, 9.88049], [45.69991, 9.89135], [45.6739, 9.89502], [45.64789, 9.89135], [45.62288, 9.88049], [45.59982, 9.86286], [45.57962, 9.83913], [45.56304, 9.81021], [45.55072, 9.77722], [45.54313, 9.74143], [45.54057, 9.7042], [45.54313, 9.66697], [45.55072, 9.63118], [45.56304, 9.59819], [45.57962, 9.56927], [45.59982, 9.54554], [45.62288, 9.52791], [45.64789, 9.51705], [45.6739, 9.51338], [45.69991, 9.51705], [45.72492, 9.52791], [45.74798, 9.54554], [45.76818, 9.56927], [45.78476, 9.59819], [45.79708, 9.63118], [45.80467, 9.66697]]},
+  {id:"CTR_Venezia",name:"CTR Venezia",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[45.6553, 12.3519], [45.65242, 12.39365], [45.64388, 12.4338], [45.63002, 12.47081], [45.61137, 12.50324], [45.58864, 12.52986], [45.5627, 12.54964], [45.53456, 12.56182], [45.5053, 12.56593], [45.47604, 12.56182], [45.4479, 12.54964], [45.42196, 12.52986], [45.39923, 12.50324], [45.38058, 12.47081], [45.36672, 12.4338], [45.35818, 12.39365], [45.3553, 12.3519], [45.35818, 12.31015], [45.36672, 12.27], [45.38058, 12.23299], [45.39923, 12.20056], [45.42196, 12.17394], [45.4479, 12.15416], [45.47604, 12.14198], [45.5053, 12.13787], [45.53456, 12.14198], [45.5627, 12.15416], [45.58864, 12.17394], [45.61137, 12.20056], [45.63002, 12.23299], [45.64388, 12.27], [45.65242, 12.31015]]},
+  {id:"CTR_Treviso",name:"CTR Treviso",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[45.76497, 12.1944], [45.76272, 12.22696], [45.75609, 12.25827], [45.7453, 12.28712], [45.7308, 12.31241], [45.71312, 12.33316], [45.69295, 12.34859], [45.67106, 12.35808], [45.6483, 12.36129], [45.62554, 12.35808], [45.60365, 12.34859], [45.58348, 12.33316], [45.5658, 12.31241], [45.5513, 12.28712], [45.54051, 12.25827], [45.53388, 12.22696], [45.53163, 12.1944], [45.53388, 12.16184], [45.54051, 12.13053], [45.5513, 12.10168], [45.5658, 12.07639], [45.58348, 12.05564], [45.60365, 12.04021], [45.62554, 12.03072], [45.6483, 12.02751], [45.67106, 12.03072], [45.69295, 12.04021], [45.71312, 12.05564], [45.7308, 12.07639], [45.7453, 12.10168], [45.75609, 12.13053], [45.76272, 12.16184]]},
+  {id:"CTR_Bologna",name:"CTR Bologna",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[44.66873, 11.2887], [44.66617, 11.32519], [44.65858, 11.36028], [44.64626, 11.39262], [44.62968, 11.42097], [44.60948, 11.44423], [44.58642, 11.46151], [44.56141, 11.47216], [44.5354, 11.47575], [44.50939, 11.47216], [44.48438, 11.46151], [44.46132, 11.44423], [44.44112, 11.42097], [44.42454, 11.39262], [44.41222, 11.36028], [44.40463, 11.32519], [44.40207, 11.2887], [44.40463, 11.25221], [44.41222, 11.21712], [44.42454, 11.18478], [44.44112, 11.15643], [44.46132, 11.13317], [44.48438, 11.11589], [44.50939, 11.10524], [44.5354, 11.10165], [44.56141, 11.10524], [44.58642, 11.11589], [44.60948, 11.13317], [44.62968, 11.15643], [44.64626, 11.18478], [44.65858, 11.21712], [44.66617, 11.25221]]},
+  {id:"CTR_Verona",name:"CTR Verona",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[45.52913, 10.8886], [45.52657, 10.92564], [45.51898, 10.96126], [45.50666, 10.99409], [45.49008, 11.02286], [45.46988, 11.04648], [45.44682, 11.06402], [45.42181, 11.07483], [45.3958, 11.07848], [45.36979, 11.07483], [45.34478, 11.06402], [45.32172, 11.04648], [45.30152, 11.02286], [45.28494, 10.99409], [45.27262, 10.96126], [45.26503, 10.92564], [45.26247, 10.8886], [45.26503, 10.85156], [45.27262, 10.81594], [45.28494, 10.78311], [45.30152, 10.75434], [45.32172, 10.73072], [45.34478, 10.71318], [45.36979, 10.70237], [45.3958, 10.69872], [45.42181, 10.70237], [45.44682, 10.71318], [45.46988, 10.73072], [45.49008, 10.75434], [45.50666, 10.78311], [45.51898, 10.81594], [45.52657, 10.85156]]},
+  {id:"CTR_Rimini",name:"CTR Rimini",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[44.13697, 12.6117], [44.13472, 12.64335], [44.12809, 12.67379], [44.1173, 12.70184], [44.1028, 12.72642], [44.08512, 12.7466], [44.06495, 12.76159], [44.04306, 12.77082], [44.0203, 12.77394], [43.99754, 12.77082], [43.97565, 12.76159], [43.95548, 12.7466], [43.9378, 12.72642], [43.9233, 12.70184], [43.91251, 12.67379], [43.90588, 12.64335], [43.90363, 12.6117], [43.90588, 12.58005], [43.91251, 12.54961], [43.9233, 12.52156], [43.9378, 12.49698], [43.95548, 12.4768], [43.97565, 12.46181], [43.99754, 12.45258], [44.0203, 12.44946], [44.04306, 12.45258], [44.06495, 12.46181], [44.08512, 12.4768], [44.1028, 12.49698], [44.1173, 12.52156], [44.12809, 12.54961], [44.13472, 12.58005]]},
+  {id:"CTR_Trieste",name:"CTR Trieste",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[45.96083, 13.4722], [45.95827, 13.50953], [45.95068, 13.54542], [45.93836, 13.57851], [45.92178, 13.6075], [45.90158, 13.6313], [45.87852, 13.64898], [45.85351, 13.65987], [45.8275, 13.66355], [45.80149, 13.65987], [45.77648, 13.64898], [45.75342, 13.6313], [45.73322, 13.6075], [45.71664, 13.57851], [45.70432, 13.54542], [45.69673, 13.50953], [45.69417, 13.4722], [45.69673, 13.43487], [45.70432, 13.39898], [45.71664, 13.36589], [45.73322, 13.3369], [45.75342, 13.3131], [45.77648, 13.29542], [45.80149, 13.28453], [45.8275, 13.28085], [45.85351, 13.28453], [45.87852, 13.29542], [45.90158, 13.3131], [45.92178, 13.3369], [45.93836, 13.36589], [45.95068, 13.39898], [45.95827, 13.43487]]},
+  {id:"CTR_Bolzano",name:"CTR Bolzano",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[46.5603, 11.3264], [46.55838, 11.35472], [46.55269, 11.38195], [46.54345, 11.40705], [46.53101, 11.42905], [46.51586, 11.4471], [46.49857, 11.46052], [46.47981, 11.46878], [46.4603, 11.47157], [46.44079, 11.46878], [46.42203, 11.46052], [46.40474, 11.4471], [46.38959, 11.42905], [46.37715, 11.40705], [46.36791, 11.38195], [46.36222, 11.35472], [46.3603, 11.3264], [46.36222, 11.29808], [46.36791, 11.27085], [46.37715, 11.24575], [46.38959, 11.22375], [46.40474, 11.2057], [46.42203, 11.19228], [46.44079, 11.18402], [46.4603, 11.18123], [46.47981, 11.18402], [46.49857, 11.19228], [46.51586, 11.2057], [46.53101, 11.22375], [46.54345, 11.24575], [46.55269, 11.27085], [46.55838, 11.29808]]},
+  {id:"CTR_Parma",name:"CTR Parma",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[44.94107, 10.2964], [44.93882, 10.32849], [44.93219, 10.35935], [44.9214, 10.38778], [44.9069, 10.41271], [44.88922, 10.43317], [44.86905, 10.44837], [44.84716, 10.45773], [44.8244, 10.46089], [44.80164, 10.45773], [44.77975, 10.44837], [44.75958, 10.43317], [44.7419, 10.41271], [44.7274, 10.38778], [44.71661, 10.35935], [44.70998, 10.32849], [44.70773, 10.2964], [44.70998, 10.26431], [44.71661, 10.23345], [44.7274, 10.20502], [44.7419, 10.18009], [44.75958, 10.15963], [44.77975, 10.14443], [44.80164, 10.13507], [44.8244, 10.13191], [44.84716, 10.13507], [44.86905, 10.14443], [44.88922, 10.15963], [44.9069, 10.18009], [44.9214, 10.20502], [44.93219, 10.23345], [44.93882, 10.26431]]},
+  {id:"CTR_Firenze",name:"CTR Firenze",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[43.94333, 11.205], [43.94077, 11.24105], [43.93318, 11.27571], [43.92086, 11.30765], [43.90428, 11.33565], [43.88408, 11.35863], [43.86102, 11.3757], [43.83601, 11.38621], [43.81, 11.38976], [43.78399, 11.38621], [43.75898, 11.3757], [43.73592, 11.35863], [43.71572, 11.33565], [43.69914, 11.30765], [43.68682, 11.27571], [43.67923, 11.24105], [43.67667, 11.205], [43.67923, 11.16895], [43.68682, 11.13429], [43.69914, 11.10235], [43.71572, 11.07435], [43.73592, 11.05137], [43.75898, 11.0343], [43.78399, 11.02379], [43.81, 11.02024], [43.83601, 11.02379], [43.86102, 11.0343], [43.88408, 11.05137], [43.90428, 11.07435], [43.92086, 11.10235], [43.93318, 11.13429], [43.94077, 11.16895]]},
+  {id:"CTR_Ancona",name:"CTR Ancona",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[43.74973, 13.3622], [43.74717, 13.39813], [43.73958, 13.43268], [43.72726, 13.46452], [43.71068, 13.49243], [43.69048, 13.51533], [43.66742, 13.53235], [43.64241, 13.54283], [43.6164, 13.54637], [43.59039, 13.54283], [43.56538, 13.53235], [43.54232, 13.51533], [43.52212, 13.49243], [43.50554, 13.46452], [43.49322, 13.43268], [43.48563, 13.39813], [43.48307, 13.3622], [43.48563, 13.32627], [43.49322, 13.29172], [43.50554, 13.25988], [43.52212, 13.23197], [43.54232, 13.20907], [43.56538, 13.19205], [43.59039, 13.18157], [43.6164, 13.17803], [43.64241, 13.18157], [43.66742, 13.19205], [43.69048, 13.20907], [43.71068, 13.23197], [43.72726, 13.25988], [43.73958, 13.29172], [43.74717, 13.32627]]},
+  {id:"CTR_Padova",name:"CTR Padova",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[45.51247, 11.8472], [45.51022, 11.87961], [45.50359, 11.91078], [45.4928, 11.9395], [45.4783, 11.96468], [45.46062, 11.98534], [45.44045, 12.0007], [45.41856, 12.01015], [45.3958, 12.01334], [45.37304, 12.01015], [45.35115, 12.0007], [45.33098, 11.98534], [45.3133, 11.96468], [45.2988, 11.9395], [45.28801, 11.91078], [45.28138, 11.87961], [45.27913, 11.8472], [45.28138, 11.81479], [45.28801, 11.78362], [45.2988, 11.7549], [45.3133, 11.72972], [45.33098, 11.70906], [45.35115, 11.6937], [45.37304, 11.68425], [45.3958, 11.68106], [45.41856, 11.68425], [45.44045, 11.6937], [45.46062, 11.70906], [45.4783, 11.72972], [45.4928, 11.7549], [45.50359, 11.78362], [45.51022, 11.81479]]},
+  {id:"CTR_Forli",name:"CTR Forli",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[44.31107, 12.0703], [44.30882, 12.10205], [44.30219, 12.13257], [44.2914, 12.1607], [44.2769, 12.18536], [44.25922, 12.2056], [44.23905, 12.22063], [44.21716, 12.22989], [44.1944, 12.23302], [44.17164, 12.22989], [44.14975, 12.22063], [44.12958, 12.2056], [44.1119, 12.18536], [44.0974, 12.1607], [44.08661, 12.13257], [44.07998, 12.10205], [44.07773, 12.0703], [44.07998, 12.03855], [44.08661, 12.00803], [44.0974, 11.9799], [44.1119, 11.95524], [44.12958, 11.935], [44.14975, 11.91997], [44.17164, 11.91071], [44.1944, 11.90758], [44.21716, 11.91071], [44.23905, 11.91997], [44.25922, 11.935], [44.2769, 11.95524], [44.2914, 11.9799], [44.30219, 12.00803], [44.30882, 12.03855]]},
+  {id:"CTR_Torino",name:"CTR Torino",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[45.25497, 7.6497], [45.25176, 7.69575], [45.24228, 7.74004], [45.22688, 7.78085], [45.20615, 7.81662], [45.1809, 7.84598], [45.15208, 7.8678], [45.12082, 7.88123], [45.0883, 7.88577], [45.05578, 7.88123], [45.02452, 7.8678], [44.9957, 7.84598], [44.97045, 7.81662], [44.94972, 7.78085], [44.93432, 7.74004], [44.92484, 7.69575], [44.92163, 7.6497], [44.92484, 7.60365], [44.93432, 7.55936], [44.94972, 7.51855], [44.97045, 7.48278], [44.9957, 7.45342], [45.02452, 7.4316], [45.05578, 7.41817], [45.0883, 7.41363], [45.12082, 7.41817], [45.15208, 7.4316], [45.1809, 7.45342], [45.20615, 7.48278], [45.22688, 7.51855], [45.24228, 7.55936], [45.25176, 7.60365]]},
+  {id:"CTR_Genova",name:"CTR Genova",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[44.54663, 8.8375], [44.54407, 8.87392], [44.53648, 8.90893], [44.52416, 8.9412], [44.50758, 8.96949], [44.48738, 8.9927], [44.46432, 9.00995], [44.43931, 9.02057], [44.4133, 9.02416], [44.38729, 9.02057], [44.36228, 9.00995], [44.33922, 8.9927], [44.31902, 8.96949], [44.30244, 8.9412], [44.29012, 8.90893], [44.28253, 8.87392], [44.27997, 8.8375], [44.28253, 8.80108], [44.29012, 8.76607], [44.30244, 8.7338], [44.31902, 8.70551], [44.33922, 8.6823], [44.36228, 8.66505], [44.38729, 8.65443], [44.4133, 8.65084], [44.43931, 8.65443], [44.46432, 8.66505], [44.48738, 8.6823], [44.50758, 8.70551], [44.52416, 8.7338], [44.53648, 8.76607], [44.54407, 8.80108]]},
+  {id:"CTR_Pisa",name:"CTR Pisa",cls:"D",floor:"SFC",ceil:"2000ft",coords:[[43.8336, 10.3928], [43.83072, 10.43327], [43.82218, 10.47218], [43.80832, 10.50804], [43.78967, 10.53947], [43.76694, 10.56526], [43.741, 10.58443], [43.71286, 10.59624], [43.6836, 10.60022], [43.65434, 10.59624], [43.6262, 10.58443], [43.60026, 10.56526], [43.57753, 10.53947], [43.55888, 10.50804], [43.54502, 10.47218], [43.53648, 10.43327], [43.5336, 10.3928], [43.53648, 10.35233], [43.54502, 10.31342], [43.55888, 10.27756], [43.57753, 10.24613], [43.60026, 10.22034], [43.6262, 10.20117], [43.65434, 10.18936], [43.6836, 10.18538], [43.71286, 10.18936], [43.741, 10.20117], [43.76694, 10.22034], [43.78967, 10.24613], [43.80832, 10.27756], [43.82218, 10.31342], [43.83072, 10.35233]]},
+  {id:"CTR_Roma_FCO",name:"CTR Roma FCO",cls:"D",floor:"SFC",ceil:"2000ft",coords:[[42.0003, 12.2389], [41.99646, 12.29124], [41.98508, 12.34157], [41.96659, 12.38795], [41.94172, 12.42861], [41.91141, 12.46197], [41.87684, 12.48676], [41.83932, 12.50203], [41.8003, 12.50719], [41.76128, 12.50203], [41.72376, 12.48676], [41.68919, 12.46197], [41.65888, 12.42861], [41.63401, 12.38795], [41.61552, 12.34157], [41.60414, 12.29124], [41.6003, 12.2389], [41.60414, 12.18656], [41.61552, 12.13623], [41.63401, 12.08985], [41.65888, 12.04919], [41.68919, 12.01583], [41.72376, 11.99104], [41.76128, 11.97577], [41.8003, 11.97061], [41.83932, 11.97577], [41.87684, 11.99104], [41.91141, 12.01583], [41.94172, 12.04919], [41.96659, 12.08985], [41.98508, 12.13623], [41.99646, 12.18656]]},
+  {id:"CTR_Roma_CIA",name:"CTR Roma CIA",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[41.93273, 12.5947], [41.93017, 12.62959], [41.92258, 12.66314], [41.91026, 12.69407], [41.89368, 12.72117], [41.87348, 12.74341], [41.85042, 12.75994], [41.82541, 12.77012], [41.7994, 12.77355], [41.77339, 12.77012], [41.74838, 12.75994], [41.72532, 12.74341], [41.70512, 12.72117], [41.68854, 12.69407], [41.67622, 12.66314], [41.66863, 12.62959], [41.66607, 12.5947], [41.66863, 12.55981], [41.67622, 12.52626], [41.68854, 12.49533], [41.70512, 12.46823], [41.72532, 12.44599], [41.74838, 12.42946], [41.77339, 12.41928], [41.7994, 12.41585], [41.82541, 12.41928], [41.85042, 12.42946], [41.87348, 12.44599], [41.89368, 12.46823], [41.91026, 12.49533], [41.92258, 12.52626], [41.93017, 12.55981]]},
+  {id:"CTR_Napoli",name:"CTR Napoli",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[41.036, 14.2908], [41.03312, 14.32951], [41.02458, 14.36673], [41.01072, 14.40103], [40.99207, 14.4311], [40.96934, 14.45577], [40.9434, 14.47411], [40.91526, 14.4854], [40.886, 14.48921], [40.85674, 14.4854], [40.8286, 14.47411], [40.80266, 14.45577], [40.77993, 14.4311], [40.76128, 14.40103], [40.74742, 14.36673], [40.73888, 14.32951], [40.736, 14.2908], [40.73888, 14.25209], [40.74742, 14.21487], [40.76128, 14.18057], [40.77993, 14.1505], [40.80266, 14.12583], [40.8286, 14.10749], [40.85674, 14.0962], [40.886, 14.09239], [40.91526, 14.0962], [40.9434, 14.10749], [40.96934, 14.12583], [40.99207, 14.1505], [41.01072, 14.18057], [41.02458, 14.21487], [41.03312, 14.25209]]},
+  {id:"CTR_Cagliari",name:"CTR Cagliari",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[39.4014, 9.0542], [39.39852, 9.09199], [39.38998, 9.12833], [39.37612, 9.16182], [39.35747, 9.19117], [39.33474, 9.21526], [39.3088, 9.23316], [39.28066, 9.24418], [39.2514, 9.2479], [39.22214, 9.24418], [39.194, 9.23316], [39.16806, 9.21526], [39.14533, 9.19117], [39.12668, 9.16182], [39.11282, 9.12833], [39.10428, 9.09199], [39.1014, 9.0542], [39.10428, 9.01641], [39.11282, 8.98007], [39.12668, 8.94658], [39.14533, 8.91723], [39.16806, 8.89314], [39.194, 8.87524], [39.22214, 8.86422], [39.2514, 8.8605], [39.28066, 8.86422], [39.3088, 8.87524], [39.33474, 8.89314], [39.35747, 8.91723], [39.37612, 8.94658], [39.38998, 8.98007], [39.39852, 9.01641]]},
+  {id:"CTR_Catania",name:"CTR Catania",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[37.6167, 15.0664], [37.61382, 15.10327], [37.60528, 15.13872], [37.59142, 15.1714], [37.57277, 15.20003], [37.55004, 15.22354], [37.5241, 15.241], [37.49596, 15.25176], [37.4667, 15.25539], [37.43744, 15.25176], [37.4093, 15.241], [37.38336, 15.22354], [37.36063, 15.20003], [37.34198, 15.1714], [37.32812, 15.13872], [37.31958, 15.10327], [37.3167, 15.0664], [37.31958, 15.02953], [37.32812, 14.99408], [37.34198, 14.9614], [37.36063, 14.93277], [37.38336, 14.90926], [37.4093, 14.8918], [37.43744, 14.88104], [37.4667, 14.87741], [37.49596, 14.88104], [37.5241, 14.8918], [37.55004, 14.90926], [37.57277, 14.93277], [37.59142, 14.9614], [37.60528, 14.99408], [37.61382, 15.02953]]},
+  {id:"CTR_Olbia",name:"CTR Olbia",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[41.03223, 9.5178], [41.02967, 9.55221], [41.02208, 9.5853], [41.00976, 9.6158], [40.99318, 9.64253], [40.97298, 9.66447], [40.94992, 9.68077], [40.92491, 9.69081], [40.8989, 9.6942], [40.87289, 9.69081], [40.84788, 9.68077], [40.82482, 9.66447], [40.80462, 9.64253], [40.78804, 9.6158], [40.77572, 9.5853], [40.76813, 9.55221], [40.76557, 9.5178], [40.76813, 9.48339], [40.77572, 9.4503], [40.78804, 9.4198], [40.80462, 9.39307], [40.82482, 9.37113], [40.84788, 9.35483], [40.87289, 9.34479], [40.8989, 9.3414], [40.92491, 9.34479], [40.94992, 9.35483], [40.97298, 9.37113], [40.99318, 9.39307], [41.00976, 9.4198], [41.02208, 9.4503], [41.02967, 9.48339]]},
+  {id:"CTR_Palermo",name:"CTR Palermo",cls:"D",floor:"SFC",ceil:"1500ft",coords:[[38.3336, 13.0914], [38.33072, 13.12863], [38.32218, 13.16443], [38.30832, 13.19742], [38.28967, 13.22634], [38.26694, 13.25007], [38.241, 13.26771], [38.21286, 13.27856], [38.1836, 13.28223], [38.15434, 13.27856], [38.1262, 13.26771], [38.10026, 13.25007], [38.07753, 13.22634], [38.05888, 13.19742], [38.04502, 13.16443], [38.03648, 13.12863], [38.0336, 13.0914], [38.03648, 13.05417], [38.04502, 13.01837], [38.05888, 12.98538], [38.07753, 12.95646], [38.10026, 12.93273], [38.1262, 12.91509], [38.15434, 12.90424], [38.1836, 12.90057], [38.21286, 12.90424], [38.241, 12.91509], [38.26694, 12.93273], [38.28967, 12.95646], [38.30832, 12.98538], [38.32218, 13.01837], [38.33072, 13.05417]]},
+  {id:"R-51A_Cervia",name:"R-51A Cervia",cls:"R",floor:"SFC",ceil:"FL125",coords:[[44.34067, 12.353], [44.33842, 12.38476], [44.33179, 12.4153], [44.321, 12.44345], [44.3065, 12.46812], [44.28882, 12.48836], [44.26865, 12.50341], [44.24676, 12.51267], [44.224, 12.5158], [44.20124, 12.51267], [44.17935, 12.50341], [44.15918, 12.48836], [44.1415, 12.46812], [44.127, 12.44345], [44.11621, 12.4153], [44.10958, 12.38476], [44.10733, 12.353], [44.10958, 12.32124], [44.11621, 12.2907], [44.127, 12.26255], [44.1415, 12.23788], [44.15918, 12.21764], [44.17935, 12.20259], [44.20124, 12.19333], [44.224, 12.1902], [44.24676, 12.19333], [44.26865, 12.20259], [44.28882, 12.21764], [44.3065, 12.23788], [44.321, 12.26255], [44.33179, 12.2907], [44.33842, 12.32124]]},
+  {id:"R-51B_Cervia",name:"R-51B Cervia",cls:"R",floor:"FL125",ceil:"FL240",coords:[[44.424, 12.353], [44.42016, 12.40745], [44.40878, 12.4598], [44.39029, 12.50805], [44.36542, 12.55035], [44.33511, 12.58505], [44.30054, 12.61084], [44.26302, 12.62673], [44.224, 12.63209], [44.18498, 12.62673], [44.14746, 12.61084], [44.11289, 12.58505], [44.08258, 12.55035], [44.05771, 12.50805], [44.03922, 12.4598], [44.02784, 12.40745], [44.024, 12.353], [44.02784, 12.29855], [44.03922, 12.2462], [44.05771, 12.19795], [44.08258, 12.15565], [44.11289, 12.12095], [44.14746, 12.09516], [44.18498, 12.07927], [44.224, 12.07391], [44.26302, 12.07927], [44.30054, 12.09516], [44.33511, 12.12095], [44.36542, 12.15565], [44.39029, 12.19795], [44.40878, 12.2462], [44.42016, 12.29855]]},
+  {id:"D-62_Aviano",name:"D-62 Aviano",cls:"R",floor:"SFC",ceil:"FL195",coords:[[46.16433, 12.596], [46.16177, 12.63347], [46.15418, 12.66949], [46.14186, 12.7027], [46.12528, 12.7318], [46.10508, 12.75568], [46.08202, 12.77343], [46.05701, 12.78436], [46.031, 12.78805], [46.00499, 12.78436], [45.97998, 12.77343], [45.95692, 12.75568], [45.93672, 12.7318], [45.92014, 12.7027], [45.90782, 12.66949], [45.90023, 12.63347], [45.89767, 12.596], [45.90023, 12.55853], [45.90782, 12.52251], [45.92014, 12.4893], [45.93672, 12.4602], [45.95692, 12.43632], [45.97998, 12.41857], [46.00499, 12.40764], [46.031, 12.40395], [46.05701, 12.40764], [46.08202, 12.41857], [46.10508, 12.43632], [46.12528, 12.4602], [46.14186, 12.4893], [46.15418, 12.52251], [46.16177, 12.55853]]},
+  {id:"R-26_Ghedi",name:"R-26 Ghedi",cls:"R",floor:"SFC",ceil:"FL195",coords:[[45.533, 10.267], [45.53108, 10.2948], [45.52539, 10.32153], [45.51615, 10.34617], [45.50371, 10.36776], [45.48856, 10.38549], [45.47127, 10.39865], [45.45251, 10.40676], [45.433, 10.4095], [45.41349, 10.40676], [45.39473, 10.39865], [45.37744, 10.38549], [45.36229, 10.36776], [45.34985, 10.34617], [45.34061, 10.32153], [45.33492, 10.2948], [45.333, 10.267], [45.33492, 10.2392], [45.34061, 10.21247], [45.34985, 10.18783], [45.36229, 10.16624], [45.37744, 10.14851], [45.39473, 10.13535], [45.41349, 10.12724], [45.433, 10.1245], [45.45251, 10.12724], [45.47127, 10.13535], [45.48856, 10.14851], [45.50371, 10.16624], [45.51615, 10.18783], [45.52539, 10.21247], [45.53108, 10.2392]]},
+  {id:"D-78_Istrana",name:"D-78 Istrana",cls:"R",floor:"SFC",ceil:"FL145",coords:[[45.783, 12.083], [45.78108, 12.11092], [45.77539, 12.13778], [45.76615, 12.16252], [45.75371, 12.18421], [45.73856, 12.20201], [45.72127, 12.21524], [45.70251, 12.22339], [45.683, 12.22614], [45.66349, 12.22339], [45.64473, 12.21524], [45.62744, 12.20201], [45.61229, 12.18421], [45.59985, 12.16252], [45.59061, 12.13778], [45.58492, 12.11092], [45.583, 12.083], [45.58492, 12.05508], [45.59061, 12.02822], [45.59985, 12.00348], [45.61229, 11.98179], [45.62744, 11.96399], [45.64473, 11.95076], [45.66349, 11.94261], [45.683, 11.93986], [45.70251, 11.94261], [45.72127, 11.95076], [45.73856, 11.96399], [45.75371, 11.98179], [45.76615, 12.00348], [45.77539, 12.02822], [45.78108, 12.05508]]},
+  {id:"Milano_TMA",name:"Milano TMA",cls:"C",floor:"1500ft",ceil:"FL145",coords:[[46.0, 8.55], [46.0, 9.1], [45.9, 9.5], [45.7, 10.05], [45.2, 10.0], [44.95, 9.9], [44.9, 9.0], [45.2, 8.5], [45.7, 8.45]]},
+  {id:"Venezia_TMA",name:"Venezia TMA",cls:"D",floor:"1500ft",ceil:"FL095",coords:[[46.0, 11.55], [46.0, 13.0], [45.5, 13.2], [45.2, 12.8], [45.1, 11.8], [45.4, 11.45]]},
+  {id:"Bologna_TMA",name:"Bologna TMA",cls:"D",floor:"1500ft",ceil:"FL095",coords:[[44.95, 10.7], [44.95, 11.85], [44.15, 11.85], [44.15, 10.7]]},
+  {id:"Verona_TMA",name:"Verona TMA",cls:"D",floor:"1500ft",ceil:"FL095",coords:[[45.7, 10.4], [45.7, 11.4], [45.0, 11.4], [45.0, 10.4]]},
+  {id:"Firenze_TMA",name:"Firenze TMA",cls:"D",floor:"1500ft",ceil:"FL095",coords:[[44.25, 10.7], [44.25, 11.75], [43.4, 11.75], [43.4, 10.7]]},
+  {id:"Genova_TMA",name:"Genova TMA",cls:"D",floor:"1500ft",ceil:"FL095",coords:[[44.7, 7.9], [44.7, 9.4], [43.8, 9.4], [43.8, 7.9]]},
+  {id:"Trieste_TMA",name:"Trieste TMA",cls:"D",floor:"1500ft",ceil:"FL095",coords:[[46.1, 13.1], [46.1, 14.0], [45.55, 14.0], [45.55, 13.1]]},
+  {id:"Roma_TMA",name:"Roma TMA",cls:"D",floor:"1500ft",ceil:"FL095",coords:[[42.3, 11.5], [42.3, 13.2], [41.2, 13.2], [41.2, 11.5]]},
+  {id:"Milano_FIR",name:"Milano FIR",cls:"FIR",floor:"GND",ceil:"UNL",coords:[[47.0, 6.5], [47.5, 8.0], [47.5, 10.0], [47.0, 11.0], [46.5, 11.5], [45.8, 11.5], [45.0, 10.5], [44.5, 10.0], [43.8, 9.5], [43.5, 7.5], [44.0, 6.5]]},
+  {id:"Padova_FIR",name:"Padova FIR",cls:"FIR",floor:"GND",ceil:"UNL",coords:[[47.5, 10.0], [47.5, 14.5], [46.5, 14.5], [45.5, 14.5], [44.5, 13.5], [43.8, 12.5], [43.8, 11.0], [44.5, 10.5], [45.0, 10.5], [45.8, 11.5], [46.5, 11.5], [47.0, 11.0]]},
+  {id:"Roma_FIR",name:"Roma FIR",cls:"FIR",floor:"GND",ceil:"UNL",coords:[[43.8, 7.5], [43.8, 9.5], [43.5, 10.0], [43.5, 12.5], [44.5, 13.5], [43.8, 15.5], [42.0, 16.0], [39.0, 15.5], [37.5, 15.0], [37.5, 12.0], [38.0, 9.0], [40.0, 8.0], [42.0, 7.5]]}
+];
+
+const AIRSPACE_STYLE={
+  FIR:{color:'#6b7280',fillOpacity:0.03,dashArray:'12 6',weight:1.2},
+  C:  {color:'#ef4444',fillOpacity:0.07,dashArray:null,  weight:1.8},
+  D:  {color:'#3b82f6',fillOpacity:0.07,dashArray:null,  weight:1.6},
+  E:  {color:'#22c55e',fillOpacity:0.05,dashArray:'6 4', weight:1.2},
+  R:  {color:'#dc2626',fillOpacity:0.13,dashArray:'5 4', weight:2.0},
+  G:  {color:'#6b7280',fillOpacity:0.03,dashArray:'4 4', weight:1.0},
+};
+
+let airspaceLayerGroup=null;
+
+// Stili per tipo/classe OpenAIP
+const OAP_STYLE={
+  CTR:{color:'#3b82f6',fillOpacity:0.07,dashArray:null,weight:1.8},
+  ATZ:{color:'#3b82f6',fillOpacity:0.05,dashArray:'4 3',weight:1.4},
+  TMA:{color:'#f59e0b',fillOpacity:0.06,dashArray:null,weight:1.6},
+  FIR:{color:'#6b7280',fillOpacity:0.02,dashArray:'10 5',weight:1.2},
+  R:  {color:'#ef4444',fillOpacity:0.12,dashArray:'5 3',weight:2.0},
+  D:  {color:'#f97316',fillOpacity:0.10,dashArray:'5 3',weight:1.8},
+  P:  {color:'#dc2626',fillOpacity:0.15,dashArray:null, weight:2.0},
+  TMZ:{color:'#8b5cf6',fillOpacity:0.06,dashArray:'6 3',weight:1.4},
+  RMZ:{color:'#8b5cf6',fillOpacity:0.06,dashArray:'6 3',weight:1.4},
+  TRA:{color:'#ef4444',fillOpacity:0.08,dashArray:'4 4',weight:1.6},
+  TSA:{color:'#ef4444',fillOpacity:0.08,dashArray:'4 4',weight:1.6},
+  VFR:{color:'#22c55e',fillOpacity:0.05,dashArray:'6 4',weight:1.2},
+  OTHER:{color:'#6b7280',fillOpacity:0.04,dashArray:'4 4',weight:1.0},
+};
+
+function initAirspaceLayer(){
+  const layers=[];
+  const source = (typeof AIRSPACES_IT !== 'undefined' && AIRSPACES_IT) ? AIRSPACES_IT : 
+                  AIRSPACES.map(as=>({n:as.name,t:as.cls,c:as.cls,u:as.ceil,l:as.floor,g:as.coords}));
+  
+  source.forEach(as=>{
+    const st=OAP_STYLE[as.t]||OAP_STYLE.OTHER;
+    const latlngs=as.g.map(c=>[c[0],c[1]]);
+    if(latlngs.length < 3) return;
+    const poly=L.polygon(latlngs,{
+      color:st.color, weight:st.weight,
+      fillColor:st.color, fillOpacity:st.fillOpacity,
+      dashArray:st.dashArray, opacity:0.85,
+      interactive:true,
+    });
+    const clsLabel = as.c && as.c!=='' ? ` · Classe ${as.c}` : '';
+    poly.bindTooltip(
+      `<b style="font-family:monospace;font-size:12px">${as.n}</b><br>`+
+      `<span style="font-family:monospace;font-size:10px">${as.t}${clsLabel} &nbsp;${as.l} – ${as.u}</span>`,
+      {sticky:true, direction:'auto', opacity:0.95}
+    );
+    layers.push(poly);
+  });
+  airspaceLayerGroup=L.layerGroup(layers);
+}
+
+// ══════════ LAYER SWITCHER ══════════
+const OPENAIP_KEY='0818b7b9755b3ef2dd71ce7b4fe44119';
+
+function initLayers(){
+  osmLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom:18
+  });
+
+  // OpenAIP layer: tile aeronautici con spazi aerei, aeroporti, navaids Europa
+  openAipLayer=L.tileLayer(
+    'https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey='+OPENAIP_KEY,
+    {
+      attribution:'© <a href="https://www.openaip.net" target="_blank">OpenAIP</a>',
+      maxZoom:14, minZoom:4, opacity:1.0,
+      crossOrigin:true,
+    }
+  );
+
+  osmLayer.addTo(map);
+  // OpenAIP sempre sovrapposto (trasparente dove non c'è info)
+  openAipLayer.addTo(map);
+}
+
+function setLayer(which){
+  currentLayer=which;
+  document.getElementById('btn-osm').classList.toggle('active',which==='osm');
+  document.getElementById('btn-ofm').classList.toggle('active',which==='vfr');
+  if(which==='vfr'){
+    // VFR: OSM + OpenAIP overlay visibile
+    if(!map.hasLayer(osmLayer)) osmLayer.addTo(map);
+    if(!map.hasLayer(openAipLayer)) openAipLayer.addTo(map);
+    openAipLayer.setOpacity(1.0);
+    // rimuovi poligoni GeoJSON se presenti
+    if(map.hasLayer(airspaceLayerGroup)) map.removeLayer(airspaceLayerGroup);
+  } else {
+    // OSM puro: nascondi overlay OpenAIP
+    openAipLayer.setOpacity(0);
+    if(map.hasLayer(airspaceLayerGroup)) map.removeLayer(airspaceLayerGroup);
+  }
+}
+
+// ══════════ MAPPA ══════════
+function initMap(){
+  map=L.map('map').setView([44.8,11.5],8);
+  initLayers();
+  // Click sinistro: aggiunge waypoint
+  map.on('click',e=>{
+    waypoints.push({lat:e.latlng.lat,lng:e.latlng.lng,name:'WP'+(waypoints.length+1),isVor:false,isApt:false,vorFreq:null});
+    renderAll();
+  });
+  // Click destro: popup spazi aerei + NOTAM
+  map.on('contextmenu',e=>{
+    e.originalEvent.preventDefault();
+    showAirspacePopup(e.latlng);
+  });
+  renderVORs();renderApts();
+}
+
+function vorSVG(t){
+  if(t==='N')return`<svg width="18" height="18" viewBox="0 0 18 18"><polygon points="9,1 17,9 9,17 1,9" fill="none" stroke="#e8a020" stroke-width="1.8"/><circle cx="9" cy="9" r="2" fill="#e8a020"/></svg>`;
+  return`<svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,2 18,6 18,14 10,18 2,14 2,6" fill="none" stroke="#e8a020" stroke-width="1.8"/>${t==='D'?'<circle cx="10" cy="10" r="3.5" fill="none" stroke="#e8a020" stroke-width="1.2"/>':''}<circle cx="10" cy="10" r="1.8" fill="#e8a020"/></svg>`;
+}
+function mkVorIcon(t){const s=t==='N'?18:20;return L.divIcon({className:'',html:`<div style="cursor:pointer;filter:drop-shadow(0 0 3px rgba(232,160,32,.45))">${vorSVG(t)}</div>`,iconAnchor:[s/2,s/2],iconSize:[s,s]});}
+function renderVORs(){
+  vorMarkers.forEach(m=>map.removeLayer(m));vorMarkers=[];
+  if(!vorVisible)return;
+  NAVAIDS.forEach(v=>{
+    const[id,name,type,freq,lat,lng,country]=v;
+    const tl=type==='N'?'NDB':type==='D'?'VOR-DME':'VOR';
+    const fu=type==='N'?'kHz':'MHz';
+    const m=L.marker([lat,lng],{icon:mkVorIcon(type),zIndexOffset:-200}).addTo(map);
+    m.bindPopup(`<div><span class="pb" style="background:rgba(232,160,32,.15);border:1px solid rgba(232,160,32,.4);color:#e8a020">${tl}</span><div class="pn">${id}</div><div class="ps">${name} · ${country}</div><div style="color:#e8eaf0;margin-bottom:4px"><b style="color:#e8a020">${freq}</b> ${fu}</div><button class="pa bl" onclick="addVorWp('${id}',${lat},${lng},${freq})">+ Aggiungi come waypoint</button><button class="pa am" onclick="setVorRef('${id}')">📡 Usa come VOR riferimento</button></div>`,{className:'vp',closeButton:true,maxWidth:210});
+    vorMarkers.push(m);
+  });
+}
+function toggleVORs(){vorVisible=document.getElementById('tog-vor').checked;renderVORs();}
+
+function mkAptIcon(){return L.divIcon({className:'',html:`<div style="width:10px;height:10px;border-radius:50%;background:#a78bfa;border:2px solid rgba(167,139,250,.5);box-shadow:0 0 5px rgba(167,139,250,.4);cursor:pointer"></div>`,iconAnchor:[5,5],iconSize:[10,10]});}
+function renderApts(){
+  aptMarkers.forEach(m=>map.removeLayer(m));aptMarkers=[];
+  if(!aptVisible)return;
+  AIRPORTS.forEach(a=>{
+    const[icao,name,city,lat,lng]=a;
+    const m=L.marker([lat,lng],{icon:mkAptIcon(),zIndexOffset:-100}).addTo(map);
+    m.bindPopup(`<div><span class="pb" style="background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.4);color:#a78bfa">Aeroporto</span><div class="pn">${icao}</div><div class="ps">${name} · ${city}</div><button class="pa bl" onclick="addAptWp('${icao}',${lat},${lng})">+ Aggiungi come waypoint</button><button class="pa pu" onclick="openMetar('${icao}')">🌤 Apri METAR</button></div>`,{className:'ap',closeButton:true,maxWidth:210});
+    aptMarkers.push(m);
+  });
+}
+function toggleApts(){aptVisible=document.getElementById('tog-apt').checked;renderApts();}
+
+function addVorWp(id,lat,lng,freq){map.closePopup();waypoints.push({lat,lng,name:id,isVor:true,isApt:false,vorFreq:freq});renderAll();}
+function addAptWp(icao,lat,lng){map.closePopup();waypoints.push({lat,lng,name:icao,isVor:false,isApt:true,vorFreq:null});renderAll();}
+function openMetar(icao){map.closePopup();window.open(`https://aviationweather.gov/metar?ids=${icao}&format=decoded`,'_blank');}
+function setVorRef(id){map.closePopup();switchTab('vor');document.getElementById('vor-sel').value=id;renderRadiali();}
+function openMetarManual(){const v=document.getElementById('icao-manual').value.trim().toUpperCase();if(v.length>=3)window.open(`https://aviationweather.gov/metar?ids=${v}&format=decoded`,'_blank');}
+
+function mkWpIcon(i,isVor,isApt){
+  const color=isVor?'#e8a020':isApt?'#a78bfa':'#3d8ef0';
+  const glow=isVor?'rgba(232,160,32,.5)':isApt?'rgba(167,139,250,.5)':'rgba(61,142,240,.5)';
+  return L.divIcon({className:'',html:`<div style="width:24px;height:24px;border-radius:50%;background:${color};color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.9);box-shadow:0 2px 8px ${glow};font-family:monospace;cursor:pointer">${i+1}</div>`,iconAnchor:[12,12],iconSize:[24,24]});
+}
+
+function renderAll(){
+  markersLayer.forEach(m=>map.removeLayer(m));markersLayer=[];
+  waypoints.forEach((wp,i)=>{
+    const m=L.marker([wp.lat,wp.lng],{icon:mkWpIcon(i,wp.isVor,wp.isApt),draggable:true}).addTo(map);
+    m.on('dragend',ev=>{waypoints[i].lat=ev.target.getLatLng().lat;waypoints[i].lng=ev.target.getLatLng().lng;waypoints[i].isVor=false;waypoints[i].isApt=false;renderAll();});
+    markersLayer.push(m);
+  });
+  if(polylineLayer)map.removeLayer(polylineLayer);
+  if(waypoints.length>=2)polylineLayer=L.polyline(waypoints.map(w=>[w.lat,w.lng]),{color:'#3d8ef0',weight:2,dashArray:'8 5',opacity:.8}).addTo(map);
+  renderWpList();renderLegs();renderSummary();
+  renderRadiali();renderFreqAuto();renderMetarLinks();
+  fetchElevation();
+}
+
+// ══════════ CANCELLA TUTTI ══════════
+function clearAllWaypoints(){
+  if(!waypoints.length)return;
+  if(!confirm('Cancellare tutti i waypoint?'))return;
+  waypoints=[];
+  renderAll();
+  document.getElementById('elev-panel').classList.remove('visible');
+}
+
+// ══════════ INSERIMENTO IN MEZZO ══════════
+function insertWaypointAfter(idx){
+  if(idx<0||idx>=waypoints.length-1)return;
+  const a=waypoints[idx],b=waypoints[idx+1];
+  const lat=(a.lat+b.lat)/2,lng=(a.lng+b.lng)/2;
+  const newWp={lat,lng,name:'WP'+String(Date.now()).slice(-3),isVor:false,isApt:false,vorFreq:null};
+  waypoints.splice(idx+1,0,newWp);
+  renderAll();
+}
+
+// ══════════ DRAG & DROP RIORDINO ══════════
+function onDragStart(e,idx){
+  dragSrcIdx=idx;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain',String(idx));
+}
+function onDragEnd(e){
+  document.querySelectorAll('.wp-item').forEach(el=>el.classList.remove('dragging','drag-over'));
+  dragSrcIdx=null;
+}
+function onDragOver(e,idx){
+  e.preventDefault();e.dataTransfer.dropEffect='move';
+  document.querySelectorAll('.wp-item').forEach(el=>el.classList.remove('drag-over'));
+  if(idx!==dragSrcIdx)e.currentTarget.classList.add('drag-over');
+}
+function onDrop(e,idx){
+  e.preventDefault();
+  if(dragSrcIdx===null||dragSrcIdx===idx)return;
+  const moved=waypoints.splice(dragSrcIdx,1)[0];
+  waypoints.splice(idx,0,moved);
+  dragSrcIdx=null;
+  renderAll();
+}
+
+// ══════════ WAYPOINT LIST con drag + insert ══════════
+function renderWpList(){
+  const el=document.getElementById('wplist');
+  if(!waypoints.length){el.innerHTML='<div class="empty">// nessun waypoint</div>';return;}
+  let html='';
+  waypoints.forEach((wp,i)=>{
+    html+=`<div class="wp-item" draggable="true"
+      ondragstart="onDragStart(event,${i})"
+      ondragend="onDragEnd(event)"
+      ondragover="onDragOver(event,${i})"
+      ondrop="onDrop(event,${i})">
+      <span class="wp-drag" title="Trascina per riordinare">⠿</span>
+      <div class="wp-num${wp.isVor?' v':wp.isApt?' a':''}">${i+1}</div>
+      <input class="wp-name-in" value="${wp.name}" onchange="waypoints[${i}].name=this.value;renderLegs();renderSummary();renderRadiali();">
+      <div class="wp-coord">${wp.lat.toFixed(4)}<br>${wp.lng.toFixed(4)}</div>
+      <button class="wp-del" onclick="waypoints.splice(${i},1);renderAll()">✕</button>
+    </div>`;
+    // Pulsante "inserisci qui" tra ogni coppia di waypoint
+    if(i<waypoints.length-1){
+      html+=`<div class="wp-insert"><button class="wp-insert-btn" onclick="insertWaypointAfter(${i})" title="Inserisci waypoint qui">+ inserisci qui</button></div>`;
+    }
+  });
+  el.innerHTML=html;
+}
+
+// ══════════ NAV CALC ══════════
+const toRad=d=>d*Math.PI/180,toDeg=r=>r*180/Math.PI;
+function nmBetween(a,b){
+  const R=3440.065,la1=toRad(a.lat),la2=toRad(b.lat),dLa=la2-la1,dLo=toRad(b.lng-a.lng);
+  return 2*R*Math.asin(Math.sqrt(Math.sin(dLa/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLo/2)**2));
+}
+function bearingTo(a,b){
+  const la1=toRad(a.lat),la2=toRad(b.lat),dLo=toRad(b.lng-a.lng);
+  const y=Math.sin(dLo)*Math.cos(la2),x=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(dLo);
+  return(toDeg(Math.atan2(y,x))+360)%360;
+}
+function calcLeg(a,b){
+  const dist=nmBetween(a,b),tc=bearingTo(a,b);
+  const tas=+document.getElementById('tas').value||100,wd=+document.getElementById('wdir').value||0;
+  const ws=+document.getElementById('wspd').value||0,mv=+document.getElementById('mvar').value||0;
+  const wca=Math.asin(Math.min(1,Math.max(-1,(ws/tas)*Math.sin(toRad(wd)-toRad(tc)+Math.PI))));
+  const gs=Math.max(1,tas*Math.cos(wca)+ws*Math.cos(toRad(wd-tc)));
+  const th=dist/gs,fph=+document.getElementById('fph').value||30;
+  return{dist,tc,hdgMag:(tc+toDeg(wca)-mv+360)%360,gs,th,fuel:th*fph};
+}
+const fmt=h=>{const t=Math.round(h*60);return`${Math.floor(t/60)}h${String(t%60).padStart(2,'0')}m`;};
+
+function renderLegs(){
+  const el=document.getElementById('leglist');
+  if(waypoints.length<2){el.innerHTML='<div class="empty">// servono ≥ 2 waypoint</div>';return;}
+  el.innerHTML='';
+  for(let i=0;i<waypoints.length-1;i++){
+    const l=calcLeg(waypoints[i],waypoints[i+1]);
+    const d=document.createElement('div');d.className='leg-row';
+    d.innerHTML=`<div class="leg-title">${waypoints[i].name} → ${waypoints[i+1].name}</div><div class="leg-data"><span>Dist <b>${l.dist.toFixed(1)} NM</b></span><span>HDG <b>${Math.round(l.hdgMag)}°M</b></span><span>TC <b>${Math.round(l.tc)}°V</b></span><span>GS <b>${Math.round(l.gs)} kt</b></span><span>EET <b>${fmt(l.th)}</b></span><span>Carb <b>${l.fuel.toFixed(1)} l</b></span></div>`;
+    el.appendChild(d);
+  }
+}
+function renderSummary(){
+  const el=document.getElementById('summary');
+  if(waypoints.length<2){el.innerHTML='<div class="empty">// aggiungi waypoint</div>';return;}
+  let dist=0,time=0,fuel=0;
+  for(let i=0;i<waypoints.length-1;i++){const l=calcLeg(waypoints[i],waypoints[i+1]);dist+=l.dist;time+=l.th;fuel+=l.fuel;}
+  const fob=+document.getElementById('fob').value||100,fres=+document.getElementById('fres').value||15,avail=fob-fres,ok=fuel<=avail;
+  el.innerHTML=`<div class="stat-grid"><div class="stat-card"><div class="sl">Distanza totale</div><div class="sv" style="color:var(--accent)">${dist.toFixed(1)} <span style="font-size:9px;color:#555a6a">NM</span></div></div><div class="stat-card"><div class="sl">Tempo stimato</div><div class="sv" style="color:var(--amber)">${fmt(time)}</div></div><div class="stat-card"><div class="sl">Carb. necessario</div><div class="sv" style="color:${ok?'var(--green)':'var(--red)'}">${fuel.toFixed(1)} <span style="font-size:9px;color:#555a6a">l</span></div></div><div class="stat-card"><div class="sl">Carb. disponibile</div><div class="sv">${avail.toFixed(1)} <span style="font-size:9px;color:#555a6a">l</span></div></div></div><div class="sbar ${ok?'sok':'swarn'}">${ok?'✓ carburante sufficiente':'⚠ carburante insufficiente'}</div>`;
+}
+
+// ══════════ SAVE/LOAD ══════════
+function savePlan(){
+  const name=document.getElementById('pname').value.trim()||('Piano '+new Date().toLocaleTimeString('it'));
+  if(!waypoints.length)return;
+  const plans=JSON.parse(localStorage.getItem('vfr_plans')||'[]');
+  plans.push({name,waypoints:JSON.parse(JSON.stringify(waypoints)),vorSel:document.getElementById('vor-sel').value});
+  localStorage.setItem('vfr_plans',JSON.stringify(plans));
+  document.getElementById('pname').value='';renderSavedPlans();
+}
+function loadPlan(i){
+  const p=JSON.parse(localStorage.getItem('vfr_plans')||'[]')[i];
+  waypoints=JSON.parse(JSON.stringify(p.waypoints));
+  renderAll();  // renderAll chiama fetchElevation che ricarica il profilo
+  if(p.vorSel){populateVorSelect();document.getElementById('vor-sel').value=p.vorSel;renderRadiali();}
+  if(waypoints.length)map.fitBounds(L.latLngBounds(waypoints.map(w=>[w.lat,w.lng])),{padding:[60,60]});
+}
+function deletePlan(i){const p=JSON.parse(localStorage.getItem('vfr_plans')||'[]');p.splice(i,1);localStorage.setItem('vfr_plans',JSON.stringify(p));renderSavedPlans();}
+function renderSavedPlans(){
+  const el=document.getElementById('savedplans'),plans=JSON.parse(localStorage.getItem('vfr_plans')||'[]');
+  if(!plans.length){el.innerHTML='<div class="empty">// nessun piano salvato</div>';return;}
+  el.innerHTML=plans.map((p,i)=>`<div class="plan-item"><div class="plan-name">${p.name}</div><button class="btn-sm" onclick="loadPlan(${i})">carica</button><button class="btn-sm btn-delsm" onclick="deletePlan(${i})">✕</button></div>`).join('');
+}
+
+// ══════════ VOR RADIALI ══════════
+function populateVorSelect(){
+  const sel=document.getElementById('vor-sel'),cur=sel.value;
+  sel.innerHTML='<option value="">— scegli VOR —</option>';
+  NAVAIDS.filter(v=>v[2]!=='N').forEach(v=>{
+    const o=document.createElement('option');o.value=v[0];o.textContent=`${v[0]} — ${v[1]} (${v[3]} MHz)`;sel.appendChild(o);
+  });
+  if(cur)sel.value=cur;
+}
+function renderRadiali(){
+  const selId=document.getElementById('vor-sel').value;
+  const wrap=document.getElementById('rad-wrap'),info=document.getElementById('vor-info');
+  if(vorLineLayer){map.removeLayer(vorLineLayer);vorLineLayer=null;}
+  if(!selId){info.innerHTML='';wrap.innerHTML='<div class="empty">// scegli un VOR dal menu</div>';return;}
+  if(!waypoints.length){wrap.innerHTML='<div class="empty">// aggiungi waypoint nel tab Piano</div>';return;}
+  const vor=NAVAIDS.find(n=>n[0]===selId);if(!vor)return;
+  const[id,name,type,freq,vlat,vlng]=vor;
+  const mv=+document.getElementById('mvar').value||0;
+  info.innerHTML=`<div class="vor-info"><div class="vn">${id} <span style="font-size:10px;color:var(--text2);font-weight:400">${type==='D'?'VOR-DME':'VOR'}</span></div><div class="vs">${name}</div><div class="vf">${freq} MHz</div></div>`;
+  vorLineLayer=L.polyline(waypoints.map(wp=>[[vlat,vlng],[wp.lat,wp.lng]]),{color:'#f472b6',weight:1.5,dashArray:'4 4',opacity:.65}).addTo(map);
+  wrap.innerHTML=`<table class="rad-table"><thead><tr><th>Waypoint</th><th>QDR</th><th>Dist NM</th></tr></thead><tbody>${
+    waypoints.map(wp=>{
+      const q=(bearingTo({lat:vlat,lng:vlng},wp)-mv+360)%360;
+      const d=nmBetween({lat:vlat,lng:vlng},wp);
+      return`<tr><td><b>${wp.name}</b></td><td><span class="rad-val">${String(Math.round(q)).padStart(3,'0')}°</span></td><td><span class="rad-dist">${d.toFixed(1)}</span></td></tr>`;
+    }).join('')
+  }</tbody></table>`;
+}
+
+// ══════════ FREQUENZE AUTO ══════════
+function renderFreqAuto(){
+  const el=document.getElementById('freq-auto'),elv=document.getElementById('freq-vor');
+  if(!waypoints.length){el.innerHTML='<div class="empty">// nessun waypoint nella rotta</div>';elv.innerHTML='<div class="empty">// nessun VOR aggiunto come waypoint</div>';return;}
+  const firSeen=new Set(),aptSeen=new Set();
+  const pts=[...waypoints];
+  for(let i=0;i<waypoints.length-1;i++){
+    const a=waypoints[i],b=waypoints[i+1];
+    for(let t=0.25;t<1;t+=0.25)pts.push({lat:a.lat+(b.lat-a.lat)*t,lng:a.lng+(b.lng-a.lng)*t,isApt:false,name:''});
+  }
+  pts.forEach(wp=>{
+    FIR_ZONES.forEach(fz=>{if(wp.lat>=fz.latMin&&wp.lat<=fz.latMax&&wp.lng>=fz.lngMin&&wp.lng<=fz.lngMax)firSeen.add(fz.id);});
+    APT_ZONES.forEach(az=>{if(wp.lat>=az.latMin&&wp.lat<=az.latMax&&wp.lng>=az.lngMin&&wp.lng<=az.lngMax)aptSeen.add(az.id);});
+    if(wp.isApt&&FREQ_DB[wp.name])aptSeen.add(wp.name);
+    if(AIRPORTS.find(a=>a[0]===wp.name))aptSeen.add(wp.name);
+  });
+  const typeCls={COM:'fc',APP:'fa',INFO:'fi2',TWR:'ft',ATIS:'fc',GND:'fi2',NAV:'fn'};
+  let rows=[];
+  FREQ_DB['_UNIV'].forEach(f=>rows.push(f));
+  firSeen.forEach(fid=>{if(FREQ_DB[fid])FREQ_DB[fid].forEach(f=>rows.push(f));});
+  aptSeen.forEach(id=>{if(FREQ_DB[id])FREQ_DB[id].forEach(f=>rows.push(f));});
+  el.innerHTML=`<table class="freq-table"><thead><tr><th>Stazione</th><th>MHz</th><th>Tipo</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.n}</td><td>${r.f}</td><td><span class="ftb ${typeCls[r.t]||'fc'}">${r.t}</span></td></tr>`).join('')}</tbody></table>`;
+  const vorWps=waypoints.filter(w=>w.isVor&&w.vorFreq);
+  const seen=new Set();
+  const uVors=vorWps.filter(w=>{if(seen.has(w.name))return false;seen.add(w.name);return true;});
+  if(!uVors.length){elv.innerHTML='<div class="empty">// nessun VOR aggiunto come waypoint</div>';return;}
+  elv.innerHTML=`<table class="freq-table"><thead><tr><th>VOR</th><th>MHz</th><th>Tipo</th></tr></thead><tbody>${uVors.map(w=>{const nd=NAVAIDS.find(n=>n[0]===w.name);const tl=nd?(nd[2]==='N'?'NDB':nd[2]==='D'?'VOR-DME':'VOR'):'VOR';return`<tr><td>${w.name}</td><td>${w.vorFreq}</td><td><span class="ftb fn">${tl}</span></td></tr>`;}).join('')}</tbody></table>`;
+}
+
+// ══════════ METAR LINKS ══════════
+function renderMetarLinks(){
+  const el=document.getElementById('metar-apt-links');
+  const apts=waypoints.filter(w=>w.isApt||AIRPORTS.find(a=>a[0]===w.name));
+  if(!apts.length){el.innerHTML='<div class="empty">// aggiungi aeroporti come waypoint per i link rapidi</div>';return;}
+  const seen=new Set();
+  const unique=apts.filter(w=>{if(seen.has(w.name))return false;seen.add(w.name);return true;});
+  el.innerHTML=unique.map(w=>{
+    const apt=AIRPORTS.find(a=>a[0]===w.name);
+    const label=apt?`${w.name} — ${apt[1]}, ${apt[2]}`:w.name;
+    return`<a class="metar-link-btn" href="https://aviationweather.gov/metar?ids=${w.name}&format=decoded" target="_blank">
+      <span class="ml-icon">🌤</span>
+      <div><div class="ml-title">${label}</div><div class="ml-sub">Clicca per METAR/TAF aggiornato</div></div>
+    </a>`;
+  }).join('');
+}
+
+// ══════════ PROFILO ALTIMETRICO ══════════
+let elevFetchTimeout=null;
+
+function fetchElevation(){
+  if(waypoints.length<2){
+    document.getElementById('elev-panel').classList.remove('visible');
+    return;
+  }
+  clearTimeout(elevFetchTimeout);
+  elevFetchTimeout=setTimeout(()=>doFetchElevation(),600);
+}
+
+async function doFetchElevation(){
+  const panel=document.getElementById('elev-panel');
+  const loading=document.getElementById('elev-loading');
+  panel.classList.add('visible');
+  loading.style.display='flex';
+  elevData=null;
+
+  // Genera punti lungo la rotta (max 100 punti)
+  const pts=[];
+  const totalLegs=waypoints.length-1;
+  const ptsPerLeg=Math.max(5,Math.floor(100/totalLegs));
+  for(let i=0;i<totalLegs;i++){
+    const a=waypoints[i],b=waypoints[i+1];
+    for(let j=0;j<=ptsPerLeg;j++){
+      const t=j/ptsPerLeg;
+      pts.push({lat:a.lat+(b.lat-a.lat)*t,lng:a.lng+(b.lng-a.lng)*t});
+    }
+  }
+  // Rimuovi duplicati
+  const uniq=pts.filter((p,i)=>i===0||p.lat!==pts[i-1].lat||p.lng!==pts[i-1].lng);
+
+  // Usa open-meteo elevation API (gratuita, CORS aperto, stabile)
+  // Accetta max 100 punti per chiamata
+  const CHUNK=100;
+  const allElev=[];
+  try{
+    for(let i=0;i<uniq.length;i+=CHUNK){
+      const chunk=uniq.slice(i,i+CHUNK);
+      const lats=chunk.map(p=>p.lat.toFixed(6)).join(',');
+      const lngs=chunk.map(p=>p.lng.toFixed(6)).join(',');
+      const url=`https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`;
+      const res=await fetch(url);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data=await res.json();
+      // open-meteo ritorna {elevation:[...]} oppure {elevation: number} se 1 punto
+      const arr=Array.isArray(data.elevation)?data.elevation:[data.elevation];
+      allElev.push(...arr);
+    }
+    loading.style.display='none';
+    if(allElev.length){
+      elevData=allElev;
+      elevData._pts=uniq;
+      drawElevationProfile(elevData,uniq);
+    }
+  }catch(e){
+    // Fallback: prova open-elevation.com
+    try{
+      const uniqOE=uniq.map(p=>({latitude:p.lat,longitude:p.lng}));
+      const res=await fetch('https://api.open-elevation.com/api/v1/lookup',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body:JSON.stringify({locations:uniqOE})
+      });
+      const data=await res.json();
+      loading.style.display='none';
+      if(data.results&&data.results.length){
+        elevData=data.results.map(r=>r.elevation);
+        elevData._pts=uniq;
+        drawElevationProfile(elevData,uniq);
+      }
+    }catch(e2){
+      loading.style.display='none';
+      document.getElementById('elev-overlay').textContent='Profilo altimetrico non disponibile (API offline)';
+    }
+  }
+}
+
+function drawElevationProfile(elevations,pts){
+  const canvas=document.getElementById('elev-canvas');
+  const panel=document.getElementById('elev-panel');
+  canvas.width=panel.offsetWidth;
+  canvas.height=panel.offsetHeight;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  const pad={top:20,right:15,bottom:30,left:52};
+  const iW=W-pad.left-pad.right,iH=H-pad.top-pad.bottom;
+
+  const maxE=Math.max(...elevations,100);
+  const minE=Math.min(...elevations,0);
+  const range=maxE-minE||1;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Gradiente terreno
+  const grad=ctx.createLinearGradient(0,pad.top,0,H-pad.bottom);
+  grad.addColorStop(0,'rgba(139,90,43,0.7)');
+  grad.addColorStop(1,'rgba(139,90,43,0.15)');
+
+  ctx.beginPath();
+  elevations.forEach((e,i)=>{
+    const x=pad.left+(i/(elevations.length-1))*iW;
+    const y=pad.top+iH-(((e-minE)/range)*iH);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.lineTo(pad.left+iW,H-pad.bottom);
+  ctx.lineTo(pad.left,H-pad.bottom);
+  ctx.closePath();
+  ctx.fillStyle=grad;
+  ctx.fill();
+
+  ctx.beginPath();
+  elevations.forEach((e,i)=>{
+    const x=pad.left+(i/(elevations.length-1))*iW;
+    const y=pad.top+iH-(((e-minE)/range)*iH);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle='rgba(139,90,43,1)';
+  ctx.lineWidth=1.5;
+  ctx.stroke();
+
+  // Asse Y — quota in unità selezionata (ft o m)
+  ctx.fillStyle='#555a6a';
+  ctx.font='9px JetBrains Mono, monospace';
+  ctx.textAlign='right';
+  [0,0.25,0.5,0.75,1].forEach(t=>{
+    const valM=Math.round(minE+range*t);
+    const label=altUnit==='ft'?mToFt(valM)+'ft':valM+'m';
+    const y=pad.top+iH-(t*iH);
+    ctx.fillText(label,pad.left-4,y+3);
+    ctx.beginPath();ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
+    ctx.moveTo(pad.left,y);ctx.lineTo(pad.left+iW,y);ctx.stroke();
+  });
+
+  // Asse X — waypoint
+  ctx.textAlign='center';
+  ctx.fillStyle='#8b90a0';
+  const legDists=[0];
+  for(let i=0;i<waypoints.length-1;i++) legDists.push(legDists[i]+nmBetween(waypoints[i],waypoints[i+1]));
+  const totalDist=legDists[legDists.length-1];
+  waypoints.forEach((wp,i)=>{
+    const x=pad.left+(legDists[i]/totalDist)*iW;
+    // Linea verticale
+    ctx.beginPath();ctx.strokeStyle='rgba(167,139,250,0.4)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    ctx.moveTo(x,pad.top);ctx.lineTo(x,H-pad.bottom);ctx.stroke();ctx.setLineDash([]);
+    // Numero progressivo invece del nome (evita sovrapposizioni)
+    ctx.fillStyle='#a78bfa';ctx.font='bold 9px JetBrains Mono, monospace';ctx.textAlign='center';
+    ctx.fillText(i+1, x, H-pad.bottom+11);
+  });
+
+  // Max elevation label
+  const maxIdx=elevations.indexOf(Math.max(...elevations));
+  const maxX=pad.left+(maxIdx/(elevations.length-1))*iW;
+  const maxY=pad.top+iH-(((Math.max(...elevations)-minE)/range)*iH);
+  ctx.fillStyle='#fbbf24';
+  ctx.font='bold 9px JetBrains Mono, monospace';
+  ctx.textAlign='center';
+  ctx.fillText(fmtAlt(Math.max(...elevations)),maxX,maxY-6);
+
+  document.getElementById('elev-overlay').textContent=
+    `Profilo altimetrico · max ${fmtAlt(maxE)} · min ${fmtAlt(minE)}`;
+}
+
+
+// ══════════ PRESET AEREI ══════════
+const DEFAULT_PRESETS=[
+  {reg:'I-LUBA',model:'C150',tas:90,fph:20,fob:80,fres:15},
+  {reg:'I-XXXX',model:'C172',tas:110,fph:30,fob:150,fres:20},
+  {reg:'I-XXXX',model:'PA28',tas:115,fph:32,fob:160,fres:20},
+];
+
+function getPresets(){
+  const saved=localStorage.getItem('vfr_presets');
+  if(saved) return JSON.parse(saved);
+  // Prima volta: carica default e salva
+  localStorage.setItem('vfr_presets',JSON.stringify(DEFAULT_PRESETS));
+  return DEFAULT_PRESETS;
+}
+function savePreset(){
+  const reg=document.getElementById('preset-reg').value.trim();
+  const model=document.getElementById('preset-model').value.trim();
+  if(!reg||!model)return;
+  const presets=getPresets();
+  presets.push({
+    reg,model,
+    tas:+document.getElementById('tas').value||100,
+    fph:+document.getElementById('fph').value||30,
+    fob:+document.getElementById('fob').value||100,
+    fres:+document.getElementById('fres').value||15,
+  });
+  localStorage.setItem('vfr_presets',JSON.stringify(presets));
+  document.getElementById('preset-reg').value='';
+  document.getElementById('preset-model').value='';
+  renderPresets();
+}
+function loadPreset(idx){
+  if(idx==='')return;
+  const p=getPresets()[+idx];if(!p)return;
+  document.getElementById('tas').value=p.tas;
+  document.getElementById('fph').value=p.fph;
+  document.getElementById('fob').value=p.fob;
+  document.getElementById('fres').value=p.fres;
+  renderLegs();renderSummary();
+  // reset select
+  document.getElementById('preset-sel').value='';
+}
+function deletePreset(idx){
+  const presets=getPresets();presets.splice(idx,1);
+  localStorage.setItem('vfr_presets',JSON.stringify(presets));
+  renderPresets();
+}
+function renderPresets(){
+  const presets=getPresets();
+  // Popola select
+  const sel=document.getElementById('preset-sel');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— preset —</option>';
+  presets.forEach((p,i)=>{
+    const o=document.createElement('option');
+    o.value=i;
+    o.textContent=`${p.reg} (${p.model})`;
+    sel.appendChild(o);
+  });
+  if(cur)sel.value=cur;
+  // Lista gestione
+  const el=document.getElementById('preset-list');
+  if(!presets.length){el.innerHTML='<div class="empty" style="font-size:10px">// nessun preset</div>';return;}
+  el.innerHTML=presets.map((p,i)=>
+    `<div class="preset-item">
+      <div style="flex:1">
+        <span class="preset-name">${p.reg}</span>
+        <span class="preset-reg"> ${p.model} · ${p.tas}kt · ${p.fph}l/h</span>
+      </div>
+      <button class="btn-sm" onclick="loadPreset(${i})">usa</button>
+      <button class="btn-sm btn-delsm" onclick="deletePreset(${i})">✕</button>
+    </div>`
+  ).join('');
+}
+
+// ══════════ NOTAM LIVE ══════════
+async function fetchNotamLive(){
+  const el=document.getElementById('notam-live-list');
+  // Raccoglie ICAO aeroporti nella rotta
+  const icaos=[...new Set(
+    waypoints
+      .filter(w=>w.isApt||AIRPORTS.find(a=>a[0]===w.name))
+      .map(w=>w.name)
+      .filter(n=>n.match(/^L[A-Z]{3}$/))  // ICAO europei
+  )];
+  if(!icaos.length){
+    el.innerHTML='<div class="empty">// aggiungi aeroporti come waypoint</div>';
+    return;
+  }
+  el.innerHTML='<div class="notam-loading">⟳ Caricamento NOTAM...</div>';
+  try{
+    // aviationweather.gov API NOTAM — CORS aperto, no key
+    const url=`https://aviationweather.gov/api/data/notam?icaos=${icaos.join(',')}&format=json`;
+    const res=await fetch(url);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    if(!data||!data.length){
+      el.innerHTML='<div class="empty">// nessun NOTAM attivo per la rotta</div>';
+      return;
+    }
+    renderNotamLive(data);
+  }catch(e){
+    // Fallback: link diretto a aviationweather per ogni ICAO
+    el.innerHTML=`<div class="empty" style="line-height:1.7">
+      API non raggiungibile.<br>
+      ${icaos.map(ic=>`<a href="https://aviationweather.gov/notam?ids=${ic}&format=decoded" target="_blank" style="color:var(--accent);font-family:var(--mono)">${ic}</a>`).join(' · ')}
+    </div>`;
+  }
+}
+
+function renderNotamLive(notams){
+  const el=document.getElementById('notam-live-list');
+  // Filtra e ordina: prima i WARNING, poi per stazione
+  const sorted=[...notams].sort((a,b)=>{
+    const aw=isNotamWarning(a)?0:1, bw=isNotamWarning(b)?0:1;
+    return aw-bw || (a.icaoLocation||'').localeCompare(b.icaoLocation||'');
+  });
+  el.innerHTML=sorted.slice(0,30).map(n=>{
+    const warn=isNotamWarning(n);
+    const stn=n.icaoLocation||'';
+    const id=n.notamID||n.id||'';
+    const body=(n.text||n.traditionalMessage||'').trim().substring(0,300);
+    const startRaw=n.startDate||n.effectiveStart||'';
+    const endRaw=n.endDate||n.effectiveEnd||'PERM';
+    const start=startRaw?new Date(startRaw).toLocaleString('it',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+    const end=endRaw&&endRaw!=='PERM'?new Date(endRaw).toLocaleString('it',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'PERM';
+    return`<div class="notam-live-item ${warn?'nw':''}">
+      <div class="notam-live-stn">${stn} <span style="color:var(--text3);font-weight:400;font-size:9px">${id}</span>${warn?' <span style="color:var(--amber);font-size:9px">⚠</span>':''}</div>
+      <div class="notam-live-body">${body}${body.length>=300?'…':''}</div>
+      ${start?`<div class="notam-live-times">📅 ${start} → ${end}</div>`:''}
+    </div>`;
+  }).join('');
+  if(notams.length>30) el.innerHTML+=`<div class="empty" style="text-align:center">+ altri ${notams.length-30} NOTAM — apri portale per tutti</div>`;
+}
+
+function isNotamWarning(n){
+  const txt=(n.text||n.traditionalMessage||n.classification||'').toUpperCase();
+  return !!(txt.match(/CLOS|PROHIB|DANGER|RESTR|ACTIV|UNSERV|RWY|TWY/) ||
+            (n.classification||'').match(/W|R/));
+}
+
+
+
+const AIRSPACE_BADGE_STYLE={
+  FIR:{bg:'rgba(107,114,128,.2)',border:'#6b7280',color:'#9ca3af'},
+  C:  {bg:'rgba(239,68,68,.2)', border:'#ef4444',color:'#fca5a5'},
+  D:  {bg:'rgba(59,130,246,.2)',border:'#3b82f6',color:'#93c5fd'},
+  E:  {bg:'rgba(34,197,94,.2)', border:'#22c55e',color:'#86efac'},
+  R:  {bg:'rgba(220,38,38,.25)',border:'#dc2626',color:'#fca5a5'},
+  G:  {bg:'rgba(107,114,128,.15)',border:'#6b7280',color:'#9ca3af'},
+};
+// ══════════ POPUP SPAZI AEREI + NOTAM (click destro) ══════════
+
+// Classi OpenAIP → label/colori
+const OAP_CLASS={
+  0:{lbl:'A', bg:'rgba(220,38,38,.25)',  bc:'#dc2626', tc:'#fca5a5'},
+  1:{lbl:'B', bg:'rgba(220,38,38,.2)',   bc:'#ef4444', tc:'#fca5a5'},
+  2:{lbl:'C', bg:'rgba(239,68,68,.18)',  bc:'#f87171', tc:'#fca5a5'},
+  3:{lbl:'D', bg:'rgba(59,130,246,.2)',  bc:'#3b82f6', tc:'#93c5fd'},
+  4:{lbl:'E', bg:'rgba(34,197,94,.18)',  bc:'#22c55e', tc:'#86efac'},
+  5:{lbl:'F', bg:'rgba(251,191,36,.18)', bc:'#fbbf24', tc:'#fde68a'},
+  6:{lbl:'G', bg:'rgba(107,114,128,.15)',bc:'#6b7280', tc:'#9ca3af'},
+};
+// Tipi speciali OpenAIP
+const OAP_TYPE={
+  0:'OTHER',1:'RESTRICTED',2:'DANGER',3:'PROHIBITED',4:'CTR',
+  5:'TMZ',6:'RMZ',7:'TMA',8:'TRA',9:'TSA',10:'FIR',11:'UIR',
+  12:'ADIZ',13:'ATZ',14:'MATZ',15:'AIRWAY',16:'MTR',17:'ALERT',
+  18:'WARNING',19:'PROTECTED',20:'HTZ',21:'GLIDING_SECTOR',
+  22:'TFR',23:'VFR_SECTOR',24:'FIS_SECTOR',
+};
+
+function fmtLimit(lim){
+  if(!lim) return '?';
+  if(lim.referenceDatum===1) return 'FL'+lim.value;  // FL
+  if(lim.referenceDatum===0 && lim.value===0) return 'SFC';
+  const u=lim.unit===1?'ft':'m';
+  return lim.value+u+' '+(lim.referenceDatum===0?'AMSL':'AGL');
+}
+
+let airspacePopupMarker=null;
+
+async function showAirspacePopup(latlng){
+  const {lat,lng}=latlng;
+  const coord=`${Math.abs(lat).toFixed(4)}°${lat>=0?'N':'S'} ${Math.abs(lng).toFixed(4)}°${lng>=0?'E':'W'}`;
+
+  // Mostra SUBITO i dati locali (istantaneo)
+  const localSpaces=getAirspacesAt(lat,lng).map(as=>({_local:true,...as}));
+  const nearIcaos=AIRPORTS.filter(a=>nmBetween({lat,lng},{lat:a[3],lng:a[4]})<30).map(a=>a[0]).slice(0,5);
+  const localNotams=nearIcaos.length?[{_fallback:true,ids:nearIcaos.join(',')}]:[];
+
+  const contentEl=document.createElement('div');
+  contentEl.innerHTML=buildAirspaceHTML(lat,lng,localSpaces,localNotams);
+
+  if(airspacePopupMarker) map.removeLayer(airspacePopupMarker);
+  airspacePopupMarker=L.popup({
+    className:'airspace-popup',closeButton:true,maxWidth:340,minWidth:280,autoPan:true
+  }).setLatLng(latlng).setContent(contentEl).openOn(map);
+
+  // Prova OpenAIP in background (3s timeout) — aggiorna se risponde
+  try{
+    const [spaces, notams]=await Promise.all([
+      fetchAirspacesAt(lat,lng),
+      fetchNotamForPoint(lat,lng),
+    ]);
+    // Aggiorna solo se il popup è ancora aperto E OpenAIP ha dato dati reali
+    const hasReal=spaces.some(s=>!s._local);
+    const hasNotam=notams.length && !notams[0]._fallback;
+    if((hasReal||hasNotam) && map.isPopupOpen(airspacePopupMarker)){
+      contentEl.innerHTML=buildAirspaceHTML(lat,lng,spaces,notams);
+      airspacePopupMarker.update();
+    }
+  }catch(e){/* mantieni dati locali */}
+}
+
+async function fetchAirspacesAt(lat, lng){
+  // Prova OpenAIP REST API con timeout 5s
+  const delta=0.15;
+  const bbox=`${lng-delta},${lat-delta},${lng+delta},${lat+delta}`;
+  try{
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),3000);
+    const res=await fetch(
+      `https://api.openaip.net/api/airspaces?bbox=${bbox}&page=1&limit=50`,
+      {
+        headers:{
+          'x-openaip-api-key':'0818b7b9755b3ef2dd71ce7b4fe44119',
+          'Accept':'application/json'
+        },
+        signal:controller.signal,
+        mode:'cors'
+      }
+    );
+    clearTimeout(timer);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const items=(data.items||data||[]);
+    return items.filter(sp=>{
+      const geo=sp.geometry;
+      if(!geo) return true;
+      if(geo.type==='Polygon') return geoPointInPolygon(lat,lng,geo.coordinates[0]);
+      if(geo.type==='MultiPolygon') return geo.coordinates.some(poly=>geoPointInPolygon(lat,lng,poly[0]));
+      return true;
+    }).sort((a,b)=>{
+      const ord={1:0,2:1,3:2,4:3,0:4,7:5,10:6};
+      return (ord[a.type]??9)-(ord[b.type]??9);
+    });
+  }catch(e){
+    console.warn('OpenAIP CORS/timeout, uso dati locali:',e.message);
+    return getAirspacesAt(lat,lng).map(as=>({_local:true,...as}));
+  }
+}
+
+// GeoJSON coordinate sono [lng,lat]
+function geoPointInPolygon(lat,lng,ring){
+  let inside=false;
+  for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+    const xi=ring[i][0],yi=ring[i][1]; // lng,lat
+    const xj=ring[j][0],yj=ring[j][1];
+    if(((yi>lat)!==(yj>lat))&&(lng<(xj-xi)*(lat-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
+}
+
+// Fallback point-in-polygon per dati locali [lat,lng]
+function pointInPolygon(lat,lng,coords){
+  let inside=false;
+  for(let i=0,j=coords.length-1;i<coords.length;j=i++){
+    const xi=coords[i][1],yi=coords[i][0];
+    const xj=coords[j][1],yj=coords[j][0];
+    if(((yi>lat)!==(yj>lat))&&(lng<(xj-xi)*(lat-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
+}
+function getAirspacesAt(lat,lng){
+  const source = (typeof AIRSPACES_IT !== 'undefined' && AIRSPACES_IT) ? 
+    AIRSPACES_IT.map(a=>({...a, _real:true})) :
+    AIRSPACES.map(as=>({n:as.name,t:as.cls,c:as.cls,u:as.ceil,l:as.floor,g:as.coords}));
+  
+  const ord={P:0,R:1,D:2,CTR:3,ATZ:4,TMA:5,TMZ:6,RMZ:7,TRA:8,TSA:9,FIR:10,OTHER:11};
+  return source
+    .filter(as=>pointInPolygon(lat,lng,as.g))
+    .sort((a,b)=>(ord[a.t]??9)-(ord[b.t]??9));
+}
+
+async function fetchNotamForPoint(lat,lng){
+  const nearIcaos=AIRPORTS
+    .filter(a=>nmBetween({lat,lng},{lat:a[3],lng:a[4]})<30)
+    .map(a=>a[0]).slice(0,5);
+  if(!nearIcaos.length) return [];
+  try{
+    const controller=new AbortController();
+    setTimeout(()=>controller.abort(),6000);
+    const url=`https://aviationweather.gov/api/data/notam?ids=${nearIcaos.join(',')}&format=json`;
+    const res=await fetch(url,{signal:controller.signal});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const txt=await res.text();
+    let data;
+    try{ data=JSON.parse(txt); }catch(e){ return [{_fallback:true,ids:nearIcaos.join(',')}]; }
+    if(Array.isArray(data)) return data;
+    if(data.notams) return data.notams;
+    if(data.features) return data.features.map(f=>f.properties||f);
+    return [{_fallback:true,ids:nearIcaos.join(',')}];
+  }catch(e){
+    return [{_fallback:true,ids:nearIcaos.join(',')}];
+  }
+}
+
+function buildAirspaceHTML(lat,lng,spaces,notams){
+  const coord=`${Math.abs(lat).toFixed(4)}°${lat>=0?'N':'S'} ${Math.abs(lng).toFixed(4)}°${lng>=0?'E':'W'}`;
+  let html=`<div class="asp-header">📍 ${coord}</div>`;
+
+  // ── Spazi aerei ──
+  if(!spaces.length){
+    html+=`<div style="font-size:11px;color:#6b7280;padding:4px 0">Nessuno spazio aereo in questo punto.</div>`;
+  } else {
+    spaces.forEach(sp=>{
+      if(sp._local || sp.n){
+        // Dati reali OpenAIP (formato {n,t,c,u,l}) o locali
+        const name=sp.n||sp.name||'';
+        const typ=sp.t||sp.cls||'';
+        const cls=sp.c||'';
+        const upper=sp.u||sp.ceil||'';
+        const lower=sp.l||sp.floor||'';
+        const stOAP=OAP_STYLE[typ]||OAP_STYLE.OTHER;
+        const clsLabel=cls&&cls!==''?` · ${cls}`:'';
+        html+=`<div class="asp-row">
+          <span class="asp-badge" style="background:${stOAP.color}22;border:1px solid ${stOAP.color};color:${stOAP.color}">${typ}</span>
+          <span class="asp-name">${name}<span style="font-size:9px;color:#6b7280">${clsLabel}</span></span>
+          <span class="asp-verts">${upper}<br>${lower}</span>
+        </div>`;
+      } else {
+        // Dati reali OpenAIP
+        const cls=OAP_CLASS[sp.icaoClass]||OAP_CLASS[6];
+        const type=OAP_TYPE[sp.type]||'';
+        const upper=fmtLimit(sp.upperLimit);
+        const lower=fmtLimit(sp.lowerLimit);
+        html+=`<div class="asp-row">
+          <span class="asp-badge" style="background:${cls.bg};border:1px solid ${cls.bc};color:${cls.tc}">${cls.lbl}</span>
+          <span class="asp-name">${sp.name||''} <span style="font-size:9px;color:#6b7280">${type}</span></span>
+          <span class="asp-verts">${upper}<br>${lower}</span>
+        </div>`;
+      }
+    });
+  }
+
+  // ── NOTAM ──
+  html+=`<div class="asp-notam-section"><div class="asp-notam-title">NOTAM</div>`;
+  if(!notams.length){
+    html+=`<div style="font-size:10px;color:#6b7280">Nessun NOTAM attivo nell'area.</div>`;
+  } else if(notams[0]?._fallback){
+    // Link diretti come fallback
+    const icaos=notams[0].ids.split(',');
+    html+=`<div style="font-size:10px;color:#6b7280;line-height:1.8">
+      API non disponibile — link diretti:<br>
+      ${icaos.map(ic=>`<a href="https://aviationweather.gov/notam?ids=${ic}&format=decoded" target="_blank" style="color:#3d8ef0;font-family:monospace">${ic}</a>`).join(' · ')}
+    </div>`;
+  } else if(notams[0]?._raw){
+    html+=`<div class="asp-notam-item">${notams[0].text}</div>`;
+  } else {
+    notams.slice(0,6).forEach(n=>{
+      const warn=isNotamWarning(n);
+      const id=n.notamID||n.id||n.facilityDesignator||'';
+      const body=(n.text||n.traditionalMessage||n.message||'').trim().substring(0,150);
+      if(!body) return;
+      html+=`<div class="asp-notam-item ${warn?'warn':''}">
+        <span class="asp-notam-id">${id}</span>${body}${body.length>=150?'…':''}
+      </div>`;
+    });
+    if(notams.length>6) html+=`<div style="font-size:9px;color:#6b7280;margin-top:2px">+ altri ${notams.length-6} NOTAM</div>`;
+  }
+  html+=`</div>`;
+
+  // ── Azioni ──
+  const nearApts=AIRPORTS.filter(a=>nmBetween({lat,lng},{lat:a[3],lng:a[4]})<30).slice(0,3);
+  if(nearApts.length){
+    html+=`<div style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);font-size:9px;color:#6b7280">
+      Aeroporti vicini: ${nearApts.map(a=>`<span style="color:#a78bfa;font-family:monospace">${a[0]}</span>`).join(' ')}
+    </div>`;
+  }
+  html+=`<div class="asp-actions">
+    <button class="asp-btn asp-btn-add" onclick="addWpFromPopup(${lat},${lng})">+ Aggiungi waypoint</button>
+    <button class="asp-btn asp-btn-close" onclick="map.closePopup()">Chiudi</button>
+  </div>`;
+
+  return html;
+}
+
+function addWpFromPopup(lat,lng){
+  map.closePopup();
+  waypoints.push({lat,lng,name:'WP'+(waypoints.length+1),isVor:false,isApt:false,vorFreq:null});
+  renderAll();
+}
+
+// ══════════ NOTAM ══════════
+function parseNotam(){
+  const raw=document.getElementById('notam-input').value.trim();if(!raw)return;
+  const el=document.getElementById('notam-list');
+  if(el.querySelector('.empty'))el.innerHTML='';
+  const blocks=raw.split(/(?=\n?[A-Z]\d{4}\/\d{2}\s+NOTAM)/g).map(b=>b.trim()).filter(b=>b.length>10);
+  (blocks.length?blocks:[raw]).forEach(block=>{
+    const idM=block.match(/([A-Z]\d{4}\/\d{2})\s+NOTAM([NRC])/);
+    const id=idM?idM[1]:'NOTAM',type=idM?{N:'Nuovo',R:'Sostituzione',C:'Cancellazione'}[idM[2]]||'—':'—';
+    const aM=block.match(/A\)\s*([A-Z]{4}(?:\s+[A-Z]{4})*)/);
+    const bM=block.match(/B\)\s*(\d{10})/),cM=block.match(/C\)\s*(\d{10}|PERM)/);
+    const eM=block.match(/E\)\s*([\s\S]+?)(?=\nF\)|\nG\)|$)/);
+    const qM=block.match(/Q\)\s*\w+\/(\w+)/);
+    const fM=block.match(/F\)\s*(.+)/),gM=block.match(/G\)\s*(.+)/);
+    const loc=aM?aM[1].trim():'',start=bM?fmtND(bM[1]):'',end=cM?cM[1]==='PERM'?'PERMANENTE':fmtND(cM[1]):'';
+    const body=eM?eM[1].trim():block.substring(0,400).trim();
+    const qCode=qM?qM[1]:'';
+    const isWarn=!!(qCode.match(/RT|RR|LR|ZZ/)||body.match(/CLOS|PROHIB|DANGER|PERICOL|RESTR|ACTIV/i));
+    const typeMatch=body.match(/(CTR|TMA|CTA|PROHIBITED|RESTRICTED|DANGER|PARACHUTE|AEROBATIC|CRANE|OBSTACLE|LASER|UAS|DRONE|VOR|ILS|RWY|RUNWAY|TWY|UNSERVICEABLE)/i);
+    const div=document.createElement('div');div.className='nitem '+(isWarn?'nw':'ni');
+    div.innerHTML=`<div class="nhdr"><span class="nid">${id}</span>${loc?`<span class="nloc">${loc}</span>`:''}<span class="ntype">${type}</span>${isWarn?`<span class="ntype" style="background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.3);color:var(--amber)">⚠ Attenzione</span>`:''}</div>
+    ${typeMatch?`<div style="color:var(--amber);font-size:11px;font-weight:700;font-family:var(--mono);margin-bottom:4px">${typeMatch[0].toUpperCase()}</div>`:''}
+    ${(fM||gM)?`<div style="font-size:10px;font-family:var(--mono);color:var(--text3);margin-bottom:4px">${fM?'Base: <b style="color:var(--text)">'+fM[1].trim()+'</b>  ':''}${gM?'Top: <b style="color:var(--text)">'+gM[1].trim()+'</b>':''}</div>`:''}
+    <div class="nbody">${body.substring(0,500)}${body.length>500?'…':''}</div>
+    ${(start||end)?`<div class="ntimes">📅 ${start?'Dal '+start:''} ${end?'→ '+end:''}</div>`:''}`;
+    el.insertAdjacentElement('afterbegin',div);
+  });
+  document.getElementById('notam-input').value='';
+}
+function fmtND(s){if(!s||s.length!==10)return s;return`${s.substr(0,2)}/${s.substr(2,2)}/${s.substr(4,2)} ${s.substr(6,2)}:${s.substr(8,2)}Z`;}
+
+// ══════════ INIT ══════════
+document.querySelectorAll('input[type=number]').forEach(el=>el.addEventListener('input',()=>{renderLegs();renderSummary();}));
+document.getElementById('icao-manual').addEventListener('keydown',e=>{if(e.key==='Enter')openMetarManual();});
+initMap();renderSavedPlans();populateVorSelect();renderPresets();
+</script>
+</body>
+</html>
