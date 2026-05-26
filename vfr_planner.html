@@ -412,7 +412,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
     <button class="layer-btn active" id="btn-osm" onclick="setLayer('osm')" title="OpenStreetMap">OSM</button>
     <button class="layer-btn" id="btn-ofm" onclick="setLayer('vfr')" title="OSM + OpenAIP (spazi aerei, aeroporti, navaids)">OpenAIP</button>
   </div>
-  <div class="map-badge">✦ click = waypoint · tasto destro = spazi aerei & NOTAM · trascina per riordinare</div>
+  <div class="map-badge">✦ click = waypoint · Alt+click o tasto destro = spazi aerei & NOTAM</div>
   <div id="elev-panel">
     <canvas id="elev-canvas"></canvas>
     <div class="elev-overlay" id="elev-overlay">Profilo altimetrico</div>
@@ -740,12 +740,16 @@ function setLayer(which){
 function initMap(){
   map=L.map('map').setView([44.8,11.5],8);
   initLayers();
-  // Click sinistro: aggiunge waypoint
+  // Click normale: aggiunge waypoint
+  // Alt+click o tasto destro: popup spazi aerei + NOTAM
   map.on('click',e=>{
+    if(e.originalEvent.altKey){
+      showAirspacePopup(e.latlng);
+      return;
+    }
     waypoints.push({lat:e.latlng.lat,lng:e.latlng.lng,name:'WP'+(waypoints.length+1),isVor:false,isApt:false,vorFreq:null});
     renderAll();
   });
-  // Click destro: popup spazi aerei + NOTAM
   map.on('contextmenu',e=>{
     e.originalEvent.preventDefault();
     showAirspacePopup(e.latlng);
