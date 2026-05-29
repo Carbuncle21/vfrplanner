@@ -3,76 +3,85 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PPL Radio Trainer — Ravenna</title>
+<title>PPL Radio Trainer</title>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Courier New',monospace;background:#0f1117;color:#c8d0e0;min-height:100vh;padding:1.5rem}
-  h1{font-size:15px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#e0e8f0}
-  .header{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e2a3a}
-  .freq-badge{font-size:11px;background:#1a2030;border:1px solid #2a3a4a;padding:3px 10px;border-radius:4px;color:#5a8ab0}
-  .section{background:#131820;border:1px solid #1e2a3a;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem}
-  .stitle{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#4a6a8a;margin-bottom:0.75rem}
-  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-  .form-row.three{grid-template-columns:1fr 1fr 1fr}
-  .fg label{font-size:11px;color:#6a8aaa;display:block;margin-bottom:4px}
-  .fg input,.fg select{width:100%;font-family:'Courier New',monospace;font-size:13px;background:#0d1018;border:1px solid #2a3a4a;color:#c0d0e0;padding:6px 8px;border-radius:5px;outline:none}
-  .fg input:focus,.fg select:focus{border-color:#185FA5}
-  .fg select option{background:#131820}
-  .egrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .eck{display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:#8aa0b8}
-  .eck input{width:auto;accent-color:#185FA5}
-  .btn{font-family:'Courier New',monospace;font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:9px 16px;border-radius:6px;cursor:pointer;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px;border:1px solid transparent}
-  .btn:disabled{opacity:0.35;cursor:not-allowed}
-  .btn.primary{background:#0C447C;color:#d0e8ff;border-color:#185FA5}
-  .btn.primary:hover:not(:disabled){background:#185FA5}
-  .btn.ok{background:#0a4a36;color:#7ef2b0;border-color:#0F6E56}
-  .btn.ok:hover:not(:disabled){background:#0F6E56}
-  .btn.neutral{background:#1a2030;color:#a0b8c8;border-color:#2a3a4a}
-  .btn.neutral:hover:not(:disabled){background:#232d40}
-  .btn.danger{background:#4a1a1a;color:#f28080;border-color:#8a2020}
-  .btn.danger:hover{background:#6a2020}
-  .btn.mic{background:#2a0a3a;color:#d080ff;border-color:#6030a0}
-  .btn.mic:hover:not(:disabled){background:#3a1050}
-  .btn.mic.recording{background:#5a1080;color:#f0b0ff;border-color:#9060d0;animation:micpulse 1s infinite}
-  @keyframes micpulse{0%,100%{box-shadow:0 0 0 0 rgba(160,80,255,0.4)}50%{box-shadow:0 0 0 8px rgba(160,80,255,0)}}
-  .atcd{background:#060910;border:1px solid #102030;border-radius:10px;padding:1.25rem;margin-bottom:1rem}
-  .atcl{font-size:10px;color:#3a6a8b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;display:flex;align-items:center;gap:8px}
-  .atcf{font-size:11px;color:#2a5a8b;margin-bottom:10px}
-  .atct{font-size:15px;color:#7ef27e;line-height:1.75;min-height:60px;white-space:pre-wrap}
-  .atct.dim{color:#2a4a2a;font-style:italic}
-  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.15}}
-  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#7ef27e;animation:blink 0.65s infinite}
-  .uta{width:100%;font-family:'Courier New',monospace;font-size:13px;border:1px solid #2a3a4a;border-radius:6px;padding:10px 12px;resize:vertical;min-height:80px;background:#0d1018;color:#c0d0e0;outline:none}
-  .uta:focus{border-color:#185FA5}
-  .eval{border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:13px;line-height:1.65}
-  .eval.good{background:#0a2010;border:1px solid #1a5a20;color:#7ef2a0}
-  .eval.partial{background:#201500;border:1px solid #5a4000;color:#f2c060}
-  .eval.bad{background:#200808;border:1px solid #5a1010;color:#f28080}
-  .evh{font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px}
-  .modans{background:#030810;border:1px solid #0a2040;border-radius:6px;padding:10px 12px;margin-top:12px}
-  .modl{font-size:10px;color:#3a6a8b;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
-  .modt{font-size:14px;color:#7ef27e;line-height:1.6}
-  .pbar{display:flex;gap:4px;margin-bottom:1rem;flex-wrap:wrap}
-  .pi{flex:1;min-width:65px;padding:5px 4px;border-radius:4px;font-size:10px;text-align:center;text-transform:uppercase;background:#1a2030;color:#4a6a8a;border:1px solid #2a3a4a}
-  .pi.active{background:#0C447C;color:#d0e8ff;border-color:#185FA5}
-  .pi.done{background:#0a2010;color:#7ef2a0;border-color:#1a5a20}
-  .scbar{display:flex;gap:12px;align-items:center;padding:6px 12px;background:#1a2030;border-radius:6px;font-size:12px}
-  .hint{font-size:12px;color:#8ab0c8;padding:8px 10px;background:#0d1824;border-radius:5px;border-left:2px solid #185FA5;margin-bottom:10px;line-height:1.5}
-  .brow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-  .spd-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;color:#6a8aaa}
-  .spd-row input[type=range]{width:110px;accent-color:#185FA5}
-  .spd-row select{font-size:12px;padding:4px 8px;background:#0d1018;border:1px solid #2a3a4a;color:#c0d0e0;border-radius:5px;font-family:'Courier New',monospace;max-width:220px}
-  .infobanner{font-size:12px;padding:8px 12px;border-radius:6px;margin-bottom:10px;line-height:1.5}
-  .infobanner.info{background:#040d18;border-left:2px solid #185FA5;color:#7ab0d8}
-  .waitbox{font-size:12px;color:#8a6020;padding:7px 10px;background:#180e00;border-radius:5px;border-left:2px solid #8a5000;margin-bottom:8px}
-  .score-ok{color:#7ef2a0}
-  .score-p{color:#f2c060}
-  .score-bad{color:#f28080}
-  .summary-num{font-size:40px;font-weight:700;margin:0.75rem 0;color:#d0e8ff}
-  .mic-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-height:32px}
-  .transcript-live{font-size:12px;color:#a080c8;font-style:italic}
-  .nospeech{font-size:11px;color:#c09040;padding:5px 8px;background:#180e00;border-radius:4px;border-left:2px solid #8a5000;margin-bottom:6px;display:none}
-  .fonia-preview{font-size:11px;color:#4a8a6a;padding:5px 8px;background:#051208;border-radius:4px;border-left:2px solid #1a5a30;margin-top:6px;font-style:italic;display:none}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Courier New',monospace;background:#0f1117;color:#c8d0e0;min-height:100vh;padding:1.5rem}
+h1{font-size:15px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#e0e8f0}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e2a3a}
+.freq-badge{font-size:11px;background:#1a2030;border:1px solid #2a3a4a;padding:3px 10px;border-radius:4px;color:#5a8ab0}
+.section{background:#131820;border:1px solid #1e2a3a;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem}
+.stitle{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#4a6a8a;margin-bottom:0.75rem}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-row.three{grid-template-columns:1fr 1fr 1fr}
+.fg label{font-size:11px;color:#6a8aaa;display:block;margin-bottom:4px}
+.fg input,.fg select{width:100%;font-family:'Courier New',monospace;font-size:13px;background:#0d1018;border:1px solid #2a3a4a;color:#c0d0e0;padding:6px 8px;border-radius:5px;outline:none}
+.fg input:focus,.fg select:focus{border-color:#185FA5}
+.fg select option{background:#131820}
+.egrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.eck{display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:#8aa0b8}
+.eck input{width:auto;accent-color:#185FA5}
+.btn{font-family:'Courier New',monospace;font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:9px 16px;border-radius:6px;cursor:pointer;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px;border:1px solid transparent}
+.btn:disabled{opacity:0.35;cursor:not-allowed}
+.btn.primary{background:#0C447C;color:#d0e8ff;border-color:#185FA5}
+.btn.primary:hover:not(:disabled){background:#185FA5}
+.btn.ok{background:#0a4a36;color:#7ef2b0;border-color:#0F6E56}
+.btn.ok:hover:not(:disabled){background:#0F6E56}
+.btn.neutral{background:#1a2030;color:#a0b8c8;border-color:#2a3a4a}
+.btn.neutral:hover:not(:disabled){background:#232d40}
+.btn.danger{background:#4a1a1a;color:#f28080;border-color:#8a2020}
+.btn.danger:hover{background:#6a2020}
+.btn.mic{background:#2a0a3a;color:#d080ff;border-color:#6030a0}
+.btn.mic:hover:not(:disabled){background:#3a1050}
+.btn.mic.recording{background:#5a1080;color:#f0b0ff;border-color:#9060d0;animation:micpulse 1s infinite}
+.lang-toggle{display:flex;background:#0d1018;border:1px solid #2a3a4a;border-radius:6px;overflow:hidden}
+.lang-btn{padding:7px 20px;font-family:'Courier New',monospace;font-size:12px;font-weight:700;letter-spacing:0.08em;cursor:pointer;border:none;background:transparent;color:#4a6a8a;transition:all 0.15s}
+.lang-btn.active{background:#0C447C;color:#d0e8ff}
+@keyframes micpulse{0%,100%{box-shadow:0 0 0 0 rgba(160,80,255,0.4)}50%{box-shadow:0 0 0 8px rgba(160,80,255,0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.15}}
+.atcd{background:#060910;border:1px solid #102030;border-radius:10px;padding:1.25rem;margin-bottom:1rem}
+.atcl{font-size:10px;color:#3a6a8b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.atcf{font-size:11px;color:#2a5a8b;margin-bottom:10px}
+.atct{font-size:15px;color:#7ef27e;line-height:1.75;min-height:60px;white-space:pre-wrap}
+.atct.dim{color:#2a4a2a;font-style:italic}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#7ef27e;animation:blink 0.65s infinite}
+/* OUTGOING call box */
+.outbox{background:#0a0818;border:1px solid #1a1040;border-radius:10px;padding:1.25rem;margin-bottom:1rem}
+.outbox-label{font-size:10px;color:#6a3a8b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px}
+.outbox-instr{font-size:14px;color:#c0a0ff;line-height:1.7;margin-bottom:4px}
+.outbox-freq{font-size:11px;color:#6a4a9b;margin-top:6px}
+.uta{width:100%;font-family:'Courier New',monospace;font-size:13px;border:1px solid #2a3a4a;border-radius:6px;padding:10px 12px;resize:vertical;min-height:80px;background:#0d1018;color:#c0d0e0;outline:none}
+.uta:focus{border-color:#185FA5}
+.eval{border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:13px;line-height:1.65}
+.eval.good{background:#0a2010;border:1px solid #1a5a20;color:#7ef2a0}
+.eval.partial{background:#201500;border:1px solid #5a4000;color:#f2c060}
+.eval.bad{background:#200808;border:1px solid #5a1010;color:#f28080}
+.evh{font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px}
+.modans{background:#030810;border:1px solid #0a2040;border-radius:6px;padding:10px 12px;margin-top:12px}
+.modl{font-size:10px;color:#3a6a8b;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
+.modt{font-size:14px;color:#7ef27e;line-height:1.6}
+.pbar{display:flex;gap:4px;margin-bottom:1rem;flex-wrap:wrap}
+.pi{flex:1;min-width:60px;padding:5px 4px;border-radius:4px;font-size:9px;text-align:center;text-transform:uppercase;background:#1a2030;color:#4a6a8a;border:1px solid #2a3a4a}
+.pi.active{background:#0C447C;color:#d0e8ff;border-color:#185FA5}
+.pi.done{background:#0a2010;color:#7ef2a0;border-color:#1a5a20}
+.scbar{display:flex;gap:12px;align-items:center;padding:6px 12px;background:#1a2030;border-radius:6px;font-size:12px}
+.hint{font-size:12px;color:#8ab0c8;padding:8px 10px;background:#0d1824;border-radius:5px;border-left:2px solid #185FA5;margin-bottom:10px;line-height:1.5}
+.brow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.spd-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;color:#6a8aaa}
+.spd-row input[type=range]{width:110px;accent-color:#185FA5}
+.spd-row select{font-size:12px;padding:4px 8px;background:#0d1018;border:1px solid #2a3a4a;color:#c0d0e0;border-radius:5px;font-family:'Courier New',monospace;max-width:220px}
+.infobanner{font-size:12px;padding:8px 12px;border-radius:6px;margin-bottom:10px;line-height:1.5}
+.infobanner.info{background:#040d18;border-left:2px solid #185FA5;color:#7ab0d8}
+.waitbox{font-size:12px;color:#8a6020;padding:7px 10px;background:#180e00;border-radius:5px;border-left:2px solid #8a5000;margin-bottom:8px}
+.score-ok{color:#7ef2a0}.score-p{color:#f2c060}.score-bad{color:#f28080}
+.summary-num{font-size:40px;font-weight:700;margin:0.75rem 0;color:#d0e8ff}
+.mic-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-height:32px}
+.transcript-live{font-size:12px;color:#a080c8;font-style:italic}
+.nospeech{font-size:11px;color:#c09040;padding:5px 8px;background:#180e00;border-radius:4px;border-left:2px solid #8a5000;margin-bottom:6px;display:none}
+.fonia-preview{font-size:11px;color:#4a8a6a;padding:5px 8px;background:#051208;border-radius:4px;border-left:2px solid #1a5a30;margin-top:6px;font-style:italic;display:none}
+.phase-type-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:2px 8px;border-radius:3px;margin-bottom:8px}
+.phase-type-badge.incoming{background:#0a2040;color:#5ab0ff;border:1px solid #1a4a8a}
+.phase-type-badge.outgoing{background:#1a0a30;color:#c090ff;border:1px solid #5a3090}
 </style>
 </head>
 <body>
@@ -83,6 +92,10 @@
   <h1>Radio Trainer PPL</h1>
   <span class="freq-badge" id="freqbadge">--- MHz</span>
   <span style="flex:1"></span>
+  <div class="lang-toggle" style="margin-right:8px">
+    <button class="lang-btn active" id="btn-ita" onclick="setLang('it')">ITA</button>
+    <button class="lang-btn" id="btn-eng" onclick="setLang('en')">ENG</button>
+  </div>
   <div class="scbar">
     <span class="score-ok">✓ <strong id="sok">0</strong></span>
     <span class="score-p">△ <strong id="spar">0</strong></span>
@@ -92,286 +105,415 @@
 
 <!-- SETUP -->
 <div id="setup">
-  <div class="infobanner info">
-    ℹ️ Fraseologia ICAO corretta: I-LUBA → "India Lima Uniform Bravo Alfa" · 1018 → "uno zero uno otto" · Pista 14 → "uno quattro"
+  <div class="infobanner info" id="info-banner">
+    ℹ️ Fonia ICAO corretta: I-LUBA → "India Lima Uniform Bravo Alfa" · 1013 → "uno zero uno tre" · Pista 14 → "uno quattro"
   </div>
   <div class="section">
-    <div class="stitle">Aeromobile e pilota</div>
+    <div class="stitle" id="lbl-aircraft">Aeromobile e pilota</div>
     <div class="form-row three">
-      <div class="fg"><label>Nominativo</label><input id="cs" value="I-LUBA" oninput="previewFonia()"></div>
-      <div class="fg"><label>Tipo aereo</label><input id="act" value="C150"></div>
-      <div class="fg"><label>Livello</label>
+      <div class="fg"><label id="lbl-cs">Nominativo</label><input id="cs" value="I-LUBA" oninput="previewFonia()"></div>
+      <div class="fg"><label id="lbl-act">Tipo aereo</label><input id="act" value="C150"></div>
+      <div class="fg"><label id="lbl-level">Livello</label>
         <select id="lv">
-          <option value="principiante">Principiante</option>
-          <option value="intermedio" selected>Intermedio</option>
-          <option value="avanzato">Avanzato</option>
+          <option value="principiante" id="opt-beg">Principiante</option>
+          <option value="intermedio" selected id="opt-int">Intermedio</option>
+          <option value="avanzato" id="opt-adv">Avanzato</option>
         </select>
       </div>
     </div>
     <div class="fonia-preview" id="fonia-preview"></div>
   </div>
   <div class="section">
-    <div class="stitle">Navigazione</div>
+    <div class="stitle" id="lbl-nav">Navigazione</div>
     <div class="form-row">
-      <div class="fg"><label>Partenza (ICAO)</label><input id="dep" value="LIDR"></div>
-      <div class="fg"><label>Arrivo (ICAO)</label><input id="arr" value="LIPR"></div>
+      <div class="fg"><label id="lbl-dep">Partenza (ICAO)</label><input id="dep" value="LIDR"></div>
+      <div class="fg"><label id="lbl-arr">Arrivo (ICAO)</label><input id="arr" value="LIPR"></div>
     </div>
     <div class="form-row three">
-      <div class="fg"><label>Quota (ft)</label><input type="number" id="alt" value="1000"></div>
-      <div class="fg"><label>Rotta (°)</label><input type="number" id="hdg" value="140"></div>
-      <div class="fg"><label>Ora UTC</label><input id="dtime" value="09:30"></div>
+      <div class="fg"><label id="lbl-alt">Quota (ft)</label><input type="number" id="alt" value="1000"></div>
+      <div class="fg"><label id="lbl-hdg">Rotta (°)</label><input type="number" id="hdg" value="140"></div>
+      <div class="fg"><label id="lbl-time">Ora UTC</label><input id="dtime" value="09:30"></div>
     </div>
   </div>
   <div class="section">
-    <div class="stitle">Voce ATC</div>
+    <div class="stitle" id="lbl-voice">Voce ATC</div>
     <div class="spd-row">
-      <label>Velocità:</label>
+      <label id="lbl-speed">Velocità:</label>
       <input type="range" id="spd" min="0.5" max="1.6" step="0.05" value="0.85">
       <span id="spdv" style="font-size:11px;min-width:34px;color:#c0d0e0">0.85x</span>
-      <label>Voce:</label>
-      <select id="vsel"><option>Caricamento voci...</option></select>
+      <label id="lbl-voice2">Voce:</label>
+      <select id="vsel"><option>Caricamento...</option></select>
       <label style="display:flex;align-items:center;gap:5px">
-        <input type="checkbox" id="hideTxt" style="width:auto;accent-color:#185FA5"> Solo audio
+        <input type="checkbox" id="hideTxt" style="width:auto;accent-color:#185FA5">
+        <span id="lbl-audioonly">Solo audio</span>
       </label>
     </div>
     <div style="margin-top:8px">
-      <button class="btn neutral" onclick="testVoice()">▶ Prova voce</button>
+      <button class="btn neutral" onclick="testVoice()" id="btn-test">▶ Prova voce</button>
     </div>
   </div>
   <div class="section">
-    <div class="stitle">Situazioni da esercitare</div>
-    <div class="egrid">
-      <label class="eck"><input type="checkbox" value="startup" checked> Startup / messa in moto</label>
-      <label class="eck"><input type="checkbox" value="taxi" checked> Rullaggio (AFIS)</label>
-      <label class="eck"><input type="checkbox" value="takeoff" checked> Decollo</label>
-      <label class="eck"><input type="checkbox" value="fis"> FIS en-route</label>
-      <label class="eck"><input type="checkbox" value="ctr"> Transito CTR</label>
-      <label class="eck"><input type="checkbox" value="position"> Riporto di posizione</label>
-      <label class="eck"><input type="checkbox" value="arrival"> Avvicinamento / circuito</label>
-      <label class="eck"><input type="checkbox" value="emergency"> Emergenza MAYDAY/PAN PAN</label>
+    <div class="stitle" id="lbl-situations">Situazioni da esercitare</div>
+    <div class="egrid" id="situations-grid">
+      <label class="eck"><input type="checkbox" value="startup" checked> <span id="sit-startup">Startup / messa in moto</span></label>
+      <label class="eck"><input type="checkbox" value="taxi" checked> <span id="sit-taxi">Rullaggio (AFIS)</span></label>
+      <label class="eck"><input type="checkbox" value="takeoff" checked> <span id="sit-takeoff">Decollo</span></label>
+      <label class="eck"><input type="checkbox" value="freqchange"> <span id="sit-freqchange">Cambio frequenza (uscente)</span></label>
+      <label class="eck"><input type="checkbox" value="fis"> <span id="sit-fis">Primo contatto FIS (uscente)</span></label>
+      <label class="eck"><input type="checkbox" value="ctr"> <span id="sit-ctr">Richiesta transito CTR (uscente)</span></label>
+      <label class="eck"><input type="checkbox" value="position"> <span id="sit-position">Riporto di posizione</span></label>
+      <label class="eck"><input type="checkbox" value="arrival"> <span id="sit-arrival">Avvicinamento / circuito</span></label>
+      <label class="eck"><input type="checkbox" value="emergency"> <span id="sit-emergency">Emergenza MAYDAY/PAN PAN</span></label>
     </div>
   </div>
   <div class="brow">
-    <button class="btn primary" onclick="startSim()">▶ Inizia simulazione</button>
+    <button class="btn primary" onclick="startSim()" id="btn-start">▶ Inizia simulazione</button>
   </div>
 </div>
 
 <!-- SIMULAZIONE -->
 <div id="sim" style="display:none">
   <div class="pbar" id="pbar"></div>
-  <div class="atcd">
-    <div class="atcl">📡 ATC <span id="sdot" style="display:none"><span class="dot"></span></span></div>
-    <div class="atcf" id="atcf">Frequenza: ---</div>
-    <div class="atct dim" id="atct">Premi "Ricevi chiamata" per iniziare questa fase...</div>
+
+  <!-- Box ATC in arrivo (chiamate entranti) -->
+  <div id="incoming-box">
+    <div class="atcd">
+      <div class="atcl">📡 <span id="lbl-atc-in">ATC → TU</span> <span id="sdot" style="display:none"><span class="dot"></span></span></div>
+      <div class="atcf" id="atcf">---</div>
+      <div class="atct dim" id="atct"></div>
+    </div>
   </div>
+
+  <!-- Box chiamata uscente -->
+  <div id="outgoing-box" style="display:none">
+    <div class="outbox">
+      <div class="outbox-label" id="lbl-atc-out">TU → ATC</div>
+      <div class="phase-type-badge outgoing" id="out-badge">CHIAMATA USCENTE</div>
+      <div class="outbox-instr" id="out-instruction"></div>
+      <div class="outbox-freq" id="out-freq"></div>
+    </div>
+  </div>
+
   <div class="hint" id="hintbox" style="display:none"></div>
-  <div class="waitbox" id="waitbox" style="display:none">⏳ Generazione chiamata in corso...</div>
+  <div class="waitbox" id="waitbox" style="display:none">⏳</div>
+
   <div style="margin-bottom:10px">
-    <div class="stitle" style="margin-bottom:5px">La tua risposta radio</div>
-    <div class="nospeech" id="nospeech">⚠ Microfono non disponibile. Usa Chrome/Edge e apri il file da un server locale.</div>
+    <div class="stitle" style="margin-bottom:5px" id="lbl-yourresp">La tua risposta radio</div>
+    <div class="nospeech" id="nospeech"></div>
     <div class="mic-row">
-      <button class="btn mic" id="micbtn" onclick="toggleMic()" style="display:none">🎙 Parla</button>
+      <button class="btn mic" id="micbtn" onclick="toggleMic()" style="display:none">🎙 <span id="mic-label">Parla</span></button>
       <span class="transcript-live" id="transcript-live"></span>
     </div>
-    <textarea class="uta" id="uresp" placeholder="Scrivi qui oppure usa il microfono 🎙...&#10;&#10;Es: India Lima Uniform Bravo Alfa, Ravenna Radio, autorizzato avviamento..."></textarea>
+    <textarea class="uta" id="uresp" placeholder=""></textarea>
   </div>
+
   <div id="evalbox" style="display:none"></div>
+
   <div class="brow">
-    <button class="btn primary" id="genbtn" onclick="doGenerate()">📻 Ricevi chiamata</button>
-    <button class="btn neutral" id="replaybtn" style="display:none" onclick="replayVoice()">▶ Riascolta</button>
-    <button class="btn ok" id="evalbtn" style="display:none" onclick="doEvaluate()">✓ Valuta risposta</button>
-    <button class="btn neutral" id="nextbtn" style="display:none" onclick="doNext()">Fase successiva →</button>
-    <button class="btn neutral" id="hintbtn" style="display:none" onclick="showHint()">💡 Struttura</button>
-    <button class="btn danger" onclick="location.reload()">↺ Ricomincia</button>
+    <button class="btn primary" id="genbtn" onclick="doGenerate()">📻 <span id="lbl-receive">Ricevi chiamata</span></button>
+    <button class="btn neutral" id="replaybtn" style="display:none" onclick="replayVoice()">▶ <span id="lbl-replay">Riascolta</span></button>
+    <button class="btn ok" id="evalbtn" style="display:none" onclick="doEvaluate()">✓ <span id="lbl-evaluate">Valuta risposta</span></button>
+    <button class="btn neutral" id="nextbtn" style="display:none" onclick="doNext()"><span id="lbl-next">Fase successiva</span> →</button>
+    <button class="btn neutral" id="hintbtn" style="display:none" onclick="showHint()">💡 <span id="lbl-hint">Struttura</span></button>
+    <button class="btn danger" onclick="location.reload()">↺ <span id="lbl-restart">Ricomincia</span></button>
   </div>
 </div>
 
-<!-- RIEPILOGO -->
 <div id="summary" style="display:none"></div>
 </div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════
-// FONIA ICAO — converte testo in lettura radio corretta
+// FONIA ICAO
 // ═══════════════════════════════════════════════════════════════
+const ALFA={A:'Alfa',B:'Bravo',C:'Charlie',D:'Delta',E:'Echo',F:'Foxtrot',G:'Golf',H:'Hotel',I:'India',J:'Juliett',K:'Kilo',L:'Lima',M:'Mike',N:'November',O:'Oscar',P:'Papa',Q:'Quebec',R:'Romeo',S:'Sierra',T:'Tango',U:'Uniform',V:'Victor',W:'Whiskey',X:'X-ray',Y:'Yankee',Z:'Zulu'};
+const ALFA_EN=ALFA; // same
+const NUM_IT={0:'zero',1:'uno',2:'due',3:'tre',4:'quattro',5:'cinque',6:'sei',7:'sette',8:'otto',9:'nove'};
+const NUM_EN={0:'zero',1:'one',2:'two',3:'three',4:'four',5:'five',6:'six',7:'seven',8:'eight',9:'niner'};
 
-const ALFA = {
-  'A':'Alfa','B':'Bravo','C':'Charlie','D':'Delta','E':'Echo',
-  'F':'Foxtrot','G':'Golf','H':'Hotel','I':'India','J':'Juliett',
-  'K':'Kilo','L':'Lima','M':'Mike','N':'November','O':'Oscar',
-  'P':'Papa','Q':'Quebec','R':'Romeo','S':'Sierra','T':'Tango',
-  'U':'Uniform','V':'Victor','W':'Whiskey','X':'X-ray','Y':'Yankee','Z':'Zulu'
-};
+let LANG='it';
+let NUM=NUM_IT;
 
-const NUMERI = {
-  '0':'zero','1':'uno','2':'due','3':'tre','4':'quattro',
-  '5':'cinque','6':'sei','7':'sette','8':'otto','9':'nove'
-};
-
-// Converte nominativo tipo I-LUBA → "India Lima Uniform Bravo Alfa"
-function callsignToFonia(cs) {
-  // Rimuovi trattino, es I-LUBA → ILUBA
-  const clean = cs.replace(/-/g,'').toUpperCase();
-  return clean.split('').map(c => ALFA[c] || c).join(' ');
+function setLang(l){
+  LANG=l; NUM=(l==='it')?NUM_IT:NUM_EN;
+  document.getElementById('btn-ita').classList.toggle('active',l==='it');
+  document.getElementById('btn-eng').classList.toggle('active',l==='en');
+  applyLangUI();
+  loadVoices();
 }
 
-// Converte numero cifra per cifra → "uno zero uno otto"
-function numToFonia(n) {
-  return String(n).split('').map(c => NUMERI[c] !== undefined ? NUMERI[c] : c).join(' ');
+function csToFonia(cs){
+  return cs.replace(/-/g,'').toUpperCase().split('').map(c=>ALFA[c]||c).join(' ');
+}
+function numToFonia(n){
+  return String(n).split('').map(c=>NUM[+c]!==undefined?NUM[+c]:c).join(' ');
+}
+function pressToFonia(p){return numToFonia(p);}
+function rwyToFonia(r){return numToFonia(String(r).padStart(2,'0'));}
+function hdgToFonia(h){return numToFonia(String(h).padStart(3,'0'));}
+function sqkToFonia(s){return numToFonia(s);}
+function freqToFonia(f){
+  const p=String(f).split('.');
+  const i=p[0].split('').map(c=>NUM[+c]||c).join(' ');
+  const dec=(p[1]||'').replace(/0+$/,'');
+  const pt=LANG==='it'?'punto':'decimal';
+  return dec?i+' '+pt+' '+dec.split('').map(c=>NUM[+c]||c).join(' '):i;
 }
 
-// Converte una frequenza → "uno due uno punto sette"
-function freqToFonia(f) {
-  // 121.700 → "uno due uno punto sette"
-  // Solo le cifre significative, punto decimale = "punto"
-  const parts = String(f).split('.');
-  const intPart = parts[0].split('').map(c=>NUMERI[c]||c).join(' ');
-  if(!parts[1]) return intPart;
-  // Decimali: tronca gli zeri finali per naturalezza → 700→"sette", 750→"sette cinque"
-  const dec = parts[1].replace(/0+$/,'');
-  if(!dec) return intPart;
-  const decPart = dec.split('').map(c=>NUMERI[c]||c).join(' ');
-  return intPart + ' punto ' + decPart;
-}
-
-// Converte pista → "uno quattro" (sempre cifra per cifra)
-function rwyToFonia(r) {
-  return String(r).split('').map(c=>NUMERI[c]||c).join(' ');
-}
-
-// Converte gradi vento (es 140) → "uno quattro zero"
-function hdgToFonia(h) {
-  return String(h).padStart(3,'0').split('').map(c=>NUMERI[c]||c).join(' ');
-}
-
-// Converte QNH/QFE (es 1013) → "uno zero uno tre"
-function pressToFonia(p) {
-  return String(p).split('').map(c=>NUMERI[c]||c).join(' ');
-}
-
-// Converte squawk (es 4521) → "quattro cinque due uno"
-function sqkToFonia(s) {
-  return String(s).split('').map(c=>NUMERI[c]||c).join(' ');
-}
-
-// Converte un orario es "09:30" → "zero nove e trenta"
-function timeToFonia(t) {
-  const parts = t.split(':');
-  if(parts.length<2) return t;
-  const h = parts[0].split('').map(c=>NUMERI[c]||c).join(' ');
-  const m = parts[1]==='00'?'': ' e '+parts[1].split('').map(c=>NUMERI[c]||c).join(' ');
-  return h + m;
-}
-
-// Preview fonia nel setup
 function previewFonia(){
-  const cs = document.getElementById('cs').value.trim().toUpperCase();
-  const el = document.getElementById('fonia-preview');
+  const cs=document.getElementById('cs').value.trim().toUpperCase();
+  const el=document.getElementById('fonia-preview');
   if(!cs){el.style.display='none';return;}
-  el.textContent = '🔊 Fonia: "' + callsignToFonia(cs) + '"';
-  el.style.display = 'block';
+  el.textContent='🔊 '+(LANG==='it'?'Fonia:':'Phonetics:')+' "'+csToFonia(cs)+'"';
+  el.style.display='block';
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DATI NAVIGAZIONE E CHIAMATE
+// TESTI UI BILINGUE
 // ═══════════════════════════════════════════════════════════════
-
-const PL={startup:'Startup',taxi:'Rullaggio',takeoff:'Decollo',fis:'FIS',ctr:'CTR',position:'Posizione',arrival:'Arrivo',emergency:'Emergenza'};
-const PF={startup:'121.700',taxi:'121.700',takeoff:'118.100',fis:'124.750',ctr:'119.350',position:'124.750',arrival:'121.700',emergency:'121.500'};
-
-const PH={
-  startup:'[nominativo], Ravenna Radio, autorizzato avviamento, QNH [XXXX], pista [XX], riporterò pronto rullaggio',
-  taxi:'[nominativo], Ravenna Radio, autorizzato rullaggio verso [destinazione], via [rullaggio se indicato]',
-  takeoff:'[nominativo], Ravenna Radio, pronto decollo pista [XX], VFR verso [destinazione]',
-  fis:'[nominativo], [Ente] Informazioni, [posizione], [quota], diretto [ARR], richiesta informazioni traffico',
-  ctr:'[nominativo], [Ente], [posizione / distanza], [quota], richiesta transito CTR',
-  position:'[nominativo], [Ente], [fix], [ora], [quota], stimato [prossimo fix]',
-  arrival:'[nominativo], Ravenna Radio, [posizione], intenzione atterraggio pista [XX]',
-  emergency:'MAYDAY MAYDAY MAYDAY — [nominativo x3], [tipo aereo], [posizione], [natura emergenza], [anime a bordo], [autonomia], [intenzioni]'
+const UI={
+  it:{
+    infobanner:'ℹ️ Fonia ICAO: I-LUBA → "India Lima Uniform Bravo Alfa" · 1013 → "uno zero uno tre" · Pista 14 → "uno quattro"',
+    aircraft:'Aeromobile e pilota',cs:'Nominativo',act:'Tipo aereo',level:'Livello',
+    beg:'Principiante',int:'Intermedio',adv:'Avanzato',
+    nav:'Navigazione',dep:'Partenza (ICAO)',arr:'Arrivo (ICAO)',alt:'Quota (ft)',hdg:'Rotta (°)',time:'Ora UTC',
+    voice:'Voce ATC',speed:'Velocità:',voicelbl:'Voce:',audioonly:'Solo audio',testvoice:'▶ Prova voce',
+    situations:'Situazioni da esercitare',
+    sits:['Startup / messa in moto','Rullaggio (AFIS)','Decollo','Cambio frequenza (uscente)','Primo contatto FIS (uscente)','Richiesta transito CTR (uscente)','Riporto di posizione','Avvicinamento / circuito','Emergenza MAYDAY/PAN PAN'],
+    start:'▶ Inizia simulazione',
+    atcin:'ATC → TU',atcout:'TU → ATC',outbadge:'CHIAMATA USCENTE',
+    yourresp:'La tua risposta radio',
+    micspeech:'Parla',micstop:'Stop',
+    receive:'Ricevi chiamata',replay:'Riascolta',evaluate:'Valuta risposta',next:'Fase successiva',hint:'Struttura',restart:'Ricomincia',
+    nospeech:'⚠ Microfono non disponibile. Usa Chrome/Edge.',
+    placeholder:'Scrivi qui oppure usa il microfono 🎙...\n\nEs: India Lima Uniform Bravo Alfa, Ravenna Radio, autorizzato avviamento...',
+    waiting:'⏳ Generazione in corso...',
+    correct:'CORRETTO',partial:'PARZIALE',wrong:'ERRATO',
+    model:'Risposta corretta',good:'Ottima fraseologia!',ok:'Buona base, ripassate alcune procedure.',bad:'Continua ad allenarti sulle procedure standard ENAC.',
+    completed:'Simulazione completata',newSim:'↺ Nuova simulazione'
+  },
+  en:{
+    infobanner:'ℹ️ ICAO Phonetics: I-LUBA → "India Lima Uniform Bravo Alfa" · 1013 → "one zero one three" · Runway 14 → "one four"',
+    aircraft:'Aircraft & Pilot',cs:'Callsign',act:'Aircraft type',level:'Level',
+    beg:'Beginner',int:'Intermediate',adv:'Advanced',
+    nav:'Navigation',dep:'Departure (ICAO)',arr:'Arrival (ICAO)',alt:'Altitude (ft)',hdg:'Heading (°)',time:'Time UTC',
+    voice:'ATC Voice',speed:'Speed:',voicelbl:'Voice:',audioonly:'Audio only',testvoice:'▶ Test voice',
+    situations:'Situations to practise',
+    sits:['Startup / engine start','Taxi (AFIS)','Takeoff','Frequency change (outgoing)','First FIS contact (outgoing)','CTR transit request (outgoing)','Position report','Approach / circuit','Emergency MAYDAY/PAN PAN'],
+    start:'▶ Start simulation',
+    atcin:'ATC → YOU',atcout:'YOU → ATC',outbadge:'OUTGOING CALL',
+    yourresp:'Your radio response',
+    micspeech:'Speak',micstop:'Stop',
+    receive:'Receive call',replay:'Replay',evaluate:'Evaluate',next:'Next phase',hint:'Structure',restart:'Restart',
+    nospeech:'⚠ Microphone not available. Use Chrome/Edge.',
+    placeholder:'Type here or use microphone 🎙...\n\nE.g.: India Lima Uniform Bravo Alfa, Ravenna Radio, cleared start-up...',
+    waiting:'⏳ Generating...',
+    correct:'CORRECT',partial:'PARTIAL',wrong:'INCORRECT',
+    model:'Correct response',good:'Excellent phraseology!',ok:'Good base, review some procedures.',bad:'Keep practising standard ICAO phraseology.',
+    completed:'Simulation complete',newSim:'↺ New simulation'
+  }
 };
 
-// Le chiamate usano testo parlato già in fonia corretta
-// g.csF = callsign in fonia, g.rwyF = pista in fonia, ecc.
-const CALLS = {
-  startup:[
-    (g)=>`${g.csF}, Ravenna Radio, autorizzato avviamento, vento ${g.hdgF} gradi ${rnd(5,12)} nodi, visibilità ${rnd(8,15)} chilometri, pista in uso ${g.rwyF}, QNH ${g.qnhF}, riportare pronto per il rullaggio.`,
-    (g)=>`${g.csF}, Ravenna Radio, autorizzato avviamento, condizioni VMC, pista in uso ${g.rwyF}, vento ${g.hdgF} gradi ${rnd(3,10)} nodi, QNH ${g.qnhF}, riportare pronto rullaggio.`,
-    (g)=>`${g.csF}, Ravenna Radio, autorizzato avviamento motore, QNH ${g.qnhF}, pista attiva ${g.rwyF}, vento ${g.hdgF} gradi ${rnd(4,10)} nodi, riportare pronti al rullaggio.`,
-  ],
-  taxi:[
-    (g)=>`${g.csF}, Ravenna Radio, autorizzato rullaggio verso pista ${g.rwyF}, via ${g.twy}, riportare pronto per il decollo.`,
-    (g)=>`${g.csF}, Ravenna Radio, autorizzato rullaggio via ${g.twy} verso punto di attesa pista ${g.rwyF}, attenzione traffico in avvicinamento.`,
-    (g)=>`${g.csF}, Ravenna Radio, via ${g.twy}, punto di attesa pista ${g.rwyF}, autorizzato. Riportare in posizione.`,
-  ],
-  takeoff:[
-    (g)=>`${g.csF}, Ravenna Radio, autorizzato decollo pista ${g.rwyF}, vento ${g.hdgF} gradi ${rnd(4,10)} nodi, riportare lasciando la zona.`,
-    (g)=>`${g.csF}, Ravenna Radio, pista ${g.rwyF} libera, autorizzato decollo, vento ${rnd(5,12)} nodi a ${g.hdgF} gradi, buon volo.`,
-    (g)=>`${g.csF}, Ravenna Radio, traffico assente, autorizzato decollo pista ${g.rwyF}, vento ${g.hdgF} gradi ${rnd(3,8)} nodi.`,
-  ],
-  fis:[
-    (g)=>`${g.csF}, Roma Informazioni, ricevuto, traffico segnalato Boeing 737 ore zero ${rnd(9,5)} a quota due mila cinque cento piedi, diretto Bologna, prestare attenzione.`,
-    (g)=>`${g.csF}, Padova Informazioni, zona libera da traffico noto, QNH ${g.qnhF}, proseguire navigazione, riportare in caso di variazioni.`,
-    (g)=>`${g.csF}, Milano Informazioni, ricevuto, nessun traffico noto nella vostra zona, QNH regionale ${g.qnhF}.`,
-  ],
-  ctr:[
-    (g)=>`${g.csF}, Rimini Avvicinamento, autorizzato transito CTR a quota uno cinque zero zero piedi o inferiore, squawk ${sqkToFonia(rnd(1000,6000))}, riportare uscita zona.`,
-    (g)=>`${g.csF}, Rimini Torre, transito CTR autorizzato, mantenere quota inferiore a due mila piedi, ricontattare questa frequenza uscendo dalla zona.`,
-    (g)=>`${g.csF}, Rimini Avvicinamento, autorizzato ingresso CTR, mantenersi a quota uno mila piedi, squawk ${sqkToFonia(rnd(2000,5000))}, rapportare overhead.`,
-  ],
-  position:[
-    (g)=>`${g.csF}, ricevuto, traffico a dodici ore, quota due mila piedi, diretto ${g.arr}, riportare ${g.arr} in vista.`,
-    (g)=>`${g.csF}, riporto ricevuto, zona libera da traffico noto, proseguire navigazione, riportare a dieci miglia dalla destinazione.`,
-    (g)=>`${g.csF}, ricevuto, stimato ${g.arr} confermato, contattare arrivi su frequenza uno uno otto punto uno.`,
-  ],
-  arrival:[
-    (g)=>`${g.csF}, Ravenna Radio, pista ${g.rwyF} libera, vento ${g.hdgF} gradi ${rnd(3,8)} nodi, QFE ${pressToFonia(rnd(995,1018))}, autorizzato avvicinamento, riportare finale.`,
-    (g)=>`${g.csF}, Ravenna Radio, autorizzato avvicinamento pista ${g.rwyF}, attenzione traffico ultraleggero in circuito, riportare rimorchio in vista.`,
-    (g)=>`${g.csF}, Ravenna Radio, pista ${g.rwyF}, QFE ${pressToFonia(rnd(995,1018))}, vento ${g.hdgF} gradi ${rnd(2,7)} nodi, numero uno, riportare corta finale.`,
-  ],
-  emergency:[
-    (g)=>`MAYDAY MAYDAY MAYDAY, ${g.csF} ${g.csF} ${g.csF}, Cessna centocinquanta, posizione dieci miglia a nord di ${g.dep}, perdita di potenza motore, quota uno due zero zero piedi in discesa, due persone a bordo, autonomia stimata dieci minuti, intenzione atterraggio di emergenza.`,
-    (g)=>`PAN PAN PAN PAN PAN PAN, ${g.csF} ${g.csF} ${g.csF}, Cessna centocinquanta, disorientamento, posizione incerta, ultima posizione nota quindici miglia da ${g.dep}, quota due mila piedi, carburante per quarantacinque minuti, richiesta assistenza navigazione.`,
-  ]
-};
+function applyLangUI(){
+  const t=UI[LANG];
+  document.getElementById('info-banner').textContent=t.infobanner;
+  document.getElementById('lbl-aircraft').textContent=t.aircraft;
+  document.getElementById('lbl-cs').textContent=t.cs;
+  document.getElementById('lbl-act').textContent=t.act;
+  document.getElementById('lbl-level').textContent=t.level;
+  document.getElementById('opt-beg').textContent=t.beg;
+  document.getElementById('opt-int').textContent=t.int;
+  document.getElementById('opt-adv').textContent=t.adv;
+  document.getElementById('lbl-nav').textContent=t.nav;
+  document.getElementById('lbl-dep').textContent=t.dep;
+  document.getElementById('lbl-arr').textContent=t.arr;
+  document.getElementById('lbl-alt').textContent=t.alt;
+  document.getElementById('lbl-hdg').textContent=t.hdg;
+  document.getElementById('lbl-time').textContent=t.time;
+  document.getElementById('lbl-voice').textContent=t.voice;
+  document.getElementById('lbl-speed').textContent=t.speed;
+  document.getElementById('lbl-voice2').textContent=t.voicelbl;
+  document.getElementById('lbl-audioonly').textContent=t.audioonly;
+  document.getElementById('btn-test').textContent=t.testvoice;
+  document.getElementById('lbl-situations').textContent=t.situations;
+  const sitIds=['sit-startup','sit-taxi','sit-takeoff','sit-freqchange','sit-fis','sit-ctr','sit-position','sit-arrival','sit-emergency'];
+  sitIds.forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=t.sits[i];});
+  document.getElementById('btn-start').textContent=t.start;
+  const ml=document.getElementById('mic-label');if(ml)ml.textContent=t.micspeech;
+  const lr=document.getElementById('lbl-receive');if(lr)lr.textContent=t.receive;
+  const lrp=document.getElementById('lbl-replay');if(lrp)lrp.textContent=t.replay;
+  const le=document.getElementById('lbl-evaluate');if(le)le.textContent=t.evaluate;
+  const ln=document.getElementById('lbl-next');if(ln)ln.textContent=t.next;
+  const lh=document.getElementById('lbl-hint');if(lh)lh.textContent=t.hint;
+  const lrs=document.getElementById('lbl-restart');if(lrs)lrs.textContent=t.restart;
+  const ur=document.getElementById('uresp');if(ur)ur.placeholder=t.placeholder;
+  const ns=document.getElementById('nospeech');if(ns)ns.textContent=t.nospeech;
+  const lai=document.getElementById('lbl-atc-in');if(lai)lai.textContent=t.atcin;
+  const lao=document.getElementById('lbl-atc-out');if(lao)lao.textContent=t.atcout;
+  const ob=document.getElementById('out-badge');if(ob)ob.textContent=t.outbadge;
+  const wb=document.getElementById('waitbox');if(wb)wb.textContent=t.waiting;
+}
 
-const SIT = {
-  startup:'Readback richiesto: nominativo in apertura, "autorizzato avviamento", QNH cifra per cifra, pista cifra per cifra, "riporterò pronto per il rullaggio".',
-  taxi:'Readback: nominativo, "autorizzato rullaggio", via di rullaggio, punto di attesa.',
-  takeoff:'Readback: nominativo, "autorizzato decollo", pista cifra per cifra. Conferma riporto se richiesto.',
-  fis:'Accusa ricezione: "ricevuto" + eventuale traffico ricevuto. Nominativo in apertura.',
-  ctr:'Readback: nominativo, autorizzazione transito, quota cifra per cifra, squawk cifra per cifra se comunicato.',
-  position:'Accusa ricezione con "ricevuto". Conferma il prossimo riporto.',
-  arrival:'Readback: nominativo, autorizzazione avvicinamento, pista cifra per cifra, QFE cifra per cifra. Conferma riporto finale.',
-  emergency:'MAYDAY/PAN PAN ricevuto: accusa ricezione con nominativo, chiedi conferma posizione e intenzioni.'
+// ═══════════════════════════════════════════════════════════════
+// DATI — CHIAMATE IN ARRIVO (ATC parla a te, tu fai readback)
+// ═══════════════════════════════════════════════════════════════
+const CALLS_IN = {
+  it:{
+    startup:[
+      (g)=>`${g.csF}, Ravenna Radio, autorizzato avviamento, vento ${g.hdgF} gradi ${rnd(5,12)} nodi, visibilità ${rnd(8,15)} chilometri, pista in uso ${g.rwyF}, QNH ${g.qnhF}, riportare pronto per il rullaggio.`,
+      (g)=>`${g.csF}, Ravenna Radio, autorizzato avviamento, condizioni VMC, pista in uso ${g.rwyF}, vento ${g.hdgF} gradi ${rnd(3,10)} nodi, QNH ${g.qnhF}, riportare pronto rullaggio.`,
+      (g)=>`${g.csF}, Ravenna Radio, autorizzato avviamento motore, QNH ${g.qnhF}, pista attiva ${g.rwyF}, vento ${g.hdgF} gradi ${rnd(4,10)} nodi, riportare pronti al rullaggio.`,
+    ],
+    taxi:[
+      (g)=>`${g.csF}, Ravenna Radio, autorizzato rullaggio verso pista ${g.rwyF}, via ${g.twy}, riportare pronto per il decollo.`,
+      (g)=>`${g.csF}, Ravenna Radio, autorizzato rullaggio via ${g.twy} verso punto di attesa pista ${g.rwyF}, attenzione traffico in avvicinamento.`,
+      (g)=>`${g.csF}, Ravenna Radio, via ${g.twy}, punto di attesa pista ${g.rwyF}, autorizzato. Riportare in posizione.`,
+    ],
+    takeoff:[
+      (g)=>`${g.csF}, Ravenna Radio, autorizzato decollo pista ${g.rwyF}, vento ${g.hdgF} gradi ${rnd(4,10)} nodi, riportare lasciando la zona.`,
+      (g)=>`${g.csF}, Ravenna Radio, pista ${g.rwyF} libera, autorizzato decollo, vento ${rnd(5,12)} nodi a ${g.hdgF} gradi, buon volo.`,
+      (g)=>`${g.csF}, Ravenna Radio, traffico assente, autorizzato decollo pista ${g.rwyF}, vento ${g.hdgF} gradi ${rnd(3,8)} nodi.`,
+    ],
+    position:[
+      (g)=>`${g.csF}, ricevuto, traffico a dodici ore, quota due mila piedi, diretto ${g.arr}, riportare ${g.arr} in vista.`,
+      (g)=>`${g.csF}, riporto ricevuto, zona libera, proseguire navigazione, riportare a dieci miglia dalla destinazione.`,
+    ],
+    arrival:[
+      (g)=>`${g.csF}, Ravenna Radio, pista ${g.rwyF} libera, vento ${g.hdgF} gradi ${rnd(3,8)} nodi, QFE ${pressToFonia(rnd(995,1018))}, autorizzato avvicinamento, riportare finale.`,
+      (g)=>`${g.csF}, Ravenna Radio, numero uno, QFE ${pressToFonia(rnd(995,1018))}, pista ${g.rwyF}, riportare corta finale.`,
+    ],
+    emergency:[
+      (g)=>`MAYDAY MAYDAY MAYDAY, ${g.csF} ${g.csF} ${g.csF}, Cessna centocinquanta, posizione dieci miglia a nord di ${g.dep}, perdita di potenza motore, quota uno due zero zero piedi in discesa, due persone a bordo, autonomia stimata dieci minuti, intenzione atterraggio di emergenza.`,
+      (g)=>`PAN PAN PAN PAN PAN PAN, ${g.csF} ${g.csF} ${g.csF}, Cessna centocinquanta, disorientamento, posizione incerta, quota due mila piedi, carburante per quarantacinque minuti, richiesta assistenza navigazione.`,
+    ],
+  },
+  en:{
+    startup:[
+      (g)=>`${g.csF}, Ravenna Radio, start-up approved, wind ${g.hdgF} degrees ${rnd(5,12)} knots, visibility ${rnd(8,15)} kilometres, runway in use ${g.rwyF}, QNH ${g.qnhF}, report ready to taxi.`,
+      (g)=>`${g.csF}, Ravenna Radio, start-up approved, VMC conditions, runway ${g.rwyF}, wind ${g.hdgF} degrees ${rnd(3,10)} knots, QNH ${g.qnhF}, report ready to taxi.`,
+    ],
+    taxi:[
+      (g)=>`${g.csF}, Ravenna Radio, taxi approved runway ${g.rwyF} via ${g.twy}, report holding point.`,
+      (g)=>`${g.csF}, Ravenna Radio, taxi via ${g.twy} to holding point runway ${g.rwyF}, caution traffic on final.`,
+    ],
+    takeoff:[
+      (g)=>`${g.csF}, Ravenna Radio, runway ${g.rwyF} clear, cleared for takeoff, wind ${g.hdgF} degrees ${rnd(4,10)} knots, report leaving the zone.`,
+      (g)=>`${g.csF}, Ravenna Radio, cleared for takeoff runway ${g.rwyF}, wind ${rnd(3,10)} knots ${g.hdgF} degrees.`,
+    ],
+    position:[
+      (g)=>`${g.csF}, roger, traffic twelve o'clock, two thousand feet, heading ${g.arr}, report ${g.arr} in sight.`,
+      (g)=>`${g.csF}, position report received, area clear, report ten miles from destination.`,
+    ],
+    arrival:[
+      (g)=>`${g.csF}, Ravenna Radio, runway ${g.rwyF} clear, wind ${g.hdgF} degrees ${rnd(3,8)} knots, QFE ${pressToFonia(rnd(995,1018))}, cleared approach, report final.`,
+      (g)=>`${g.csF}, Ravenna Radio, number one, QFE ${pressToFonia(rnd(995,1018))}, runway ${g.rwyF}, report short final.`,
+    ],
+    emergency:[
+      (g)=>`MAYDAY MAYDAY MAYDAY, ${g.csF} ${g.csF} ${g.csF}, Cessna one five zero, position ten miles north of ${g.dep}, engine failure, altitude one two zero zero feet descending, two souls on board, endurance ten minutes, intending emergency landing.`,
+      (g)=>`PAN PAN PAN PAN PAN PAN, ${g.csF} ${g.csF} ${g.csF}, Cessna one five zero, disoriented, position uncertain, altitude two thousand feet, fuel forty-five minutes, requesting navigation assistance.`,
+    ],
+  }
 };
 
 // ═══════════════════════════════════════════════════════════════
-// VALUTAZIONE
+// DATI — CHIAMATE USCENTI (tu chiami l'ente per primo)
 // ═══════════════════════════════════════════════════════════════
 
-const CRITERI = {
-  startup:{required:['autorizzato avviamento','qnh','pista'],nominativo:true,
-    tips:'Readback: autorizzazione avviamento + QNH (cifra per cifra) + pista (cifra per cifra) + "riporterò pronto per il rullaggio".'},
-  taxi:{required:['autorizzato rullaggio','via'],nominativo:true,
-    tips:'Readback: autorizzazione rullaggio + via di rullaggio + punto di attesa.'},
-  takeoff:{required:['autorizzato decollo','pista'],nominativo:true,
-    tips:'Readback: autorizzazione decollo + pista cifra per cifra. Conferma riporto se richiesto.'},
-  fis:{required:['ricevuto'],nominativo:true,
-    tips:'Accusa ricezione. Usa "ricevuto" o "traffico ricevuto". Nominativo in apertura.'},
-  ctr:{required:['autorizzato transito','quota'],nominativo:true,
-    tips:'Readback: autorizzazione transito + quota + squawk se comunicato.'},
-  position:{required:['ricevuto'],nominativo:true,
-    tips:'Accusa ricezione con "ricevuto". Conferma prossimo riporto.'},
-  arrival:{required:['autorizzato avvicinamento','pista'],nominativo:true,
-    tips:'Readback: autorizzazione avvicinamento + pista + QFE. Conferma riporto finale.'},
-  emergency:{required:['mayday','ricevuto'],nominativo:false,
-    tips:'MAYDAY ricevuto: "[nominativo], MAYDAY ricevuto, mantenete la frequenza, soccorsi allertati."'}
+// Per le chiamate uscenti: prima mostriamo l'istruzione (es. ATC ti dice di cambiare freq),
+// poi tu devi formulare la chiamata iniziale al nuovo ente.
+const CALLS_OUT = {
+  it:{
+    freqchange:{
+      // Messaggio precedente che ti dice di cambiare
+      trigger:(g)=>`${g.csF}, Ravenna Radio, contattare Roma Informazioni su frequenza ${freqToFonia('124.750')}, buon volo.`,
+      // Istruzione per il pilota
+      instruction:(g)=>`L'ente ti ha trasferito su Roma Informazioni — 124.750 MHz.\nOra sei tu a dover chiamare Roma Informazioni per primo.`,
+      freq:'124.750',
+      entity_it:'Roma Informazioni',
+      entity_en:'Rome Information',
+      // Risposta modello
+      model_it:(g)=>`${g.csF}, Roma Informazioni, buongiorno, ${g.act}, da ${g.dep} diretto ${g.arr}, quota ${numToFonia(g.alt)} piedi, stimato ${g.arr} alle ${g.dtime}, QNH ${g.qnhF}.`,
+      model_en:(g)=>`${g.csF}, Rome Information, good day, ${g.act}, from ${g.dep} to ${g.arr}, altitude ${numToFonia(g.alt)} feet, estimating ${g.arr} at ${g.dtime}, QNH ${g.qnhF}.`,
+      hint_it:'Struttura primo contatto: [nominativo ente], [tuo nominativo], [tipo aereo], [partenza] diretto [arrivo], quota [cifra per cifra] piedi, stimato [arr] ore [ora], QNH [cifra per cifra].',
+      hint_en:'First contact structure: [entity callsign], [your callsign], [type], from [dep] to [arr], altitude [digits] feet, estimating [arr] at [time], QNH [digits].',
+      check_it:['roma informazioni','informazioni'],
+      check_en:['rome information','information'],
+    },
+    fis:{
+      trigger:null, // chiamata uscente diretta, non preceduta da trasferimento
+      instruction:(g)=>`Sei in crociera a ${g.alt} ft, rotta verso ${g.arr}.\nContatta Roma Informazioni su 124.750 MHz — primo contatto.`,
+      freq:'124.750',
+      entity_it:'Roma Informazioni',
+      entity_en:'Rome Information',
+      model_it:(g)=>`${g.csF}, Roma Informazioni, buongiorno, ${g.act}, da ${g.dep} diretto ${g.arr}, quota ${numToFonia(g.alt)} piedi, VFR, QNH ${g.qnhF}, richiesta informazioni traffico.`,
+      model_en:(g)=>`${g.csF}, Rome Information, good day, ${g.act}, from ${g.dep} to ${g.arr}, altitude ${numToFonia(g.alt)} feet, VFR, QNH ${g.qnhF}, request traffic information.`,
+      hint_it:'Primo contatto FIS: [ente], [nominativo], [tipo], da [dep] diretto [arr], quota [xxx] piedi, VFR, QNH [xxx], richiesta informazioni traffico.',
+      hint_en:'First FIS contact: [entity], [callsign], [type], from [dep] to [arr], altitude [xxx] feet, VFR, QNH [xxx], request traffic information.',
+      check_it:['roma informazioni','informazioni'],
+      check_en:['rome information','information'],
+    },
+    ctr:{
+      trigger:null,
+      instruction:(g)=>`Stai per entrare nella CTR di Rimini. Sei a 10 miglia.\nContatta Rimini Torre su 118.100 MHz e richiedi autorizzazione transito.`,
+      freq:'118.100',
+      entity_it:'Rimini Torre',
+      entity_en:'Rimini Tower',
+      model_it:(g)=>`${g.csF}, Rimini Torre, buongiorno, ${g.act}, da ${g.dep} diretto ${g.arr}, posizione dieci miglia a ovest, quota ${numToFonia(g.alt)} piedi, richiesta transito CTR.`,
+      model_en:(g)=>`${g.csF}, Rimini Tower, good day, ${g.act}, from ${g.dep} to ${g.arr}, position ten miles west, altitude ${numToFonia(g.alt)} feet, request CTR transit.`,
+      hint_it:'Richiesta transito CTR: [ente], [nominativo], [tipo], da [dep] diretto [arr], posizione [X miglia + direzione], quota [xxx] piedi, richiesta transito CTR.',
+      hint_en:'CTR transit request: [entity], [callsign], [type], from [dep] to [arr], position [X miles + direction], altitude [xxx] feet, request CTR transit.',
+      check_it:['rimini torre','rimini'],
+      check_en:['rimini tower','rimini'],
+    },
+  }
+};
+
+// Hint struttura per chiamate in arrivo
+const HINTS_IN = {
+  it:{
+    startup:'Struttura readback: [nominativo], Ravenna Radio, "autorizzato avviamento", QNH [cifra per cifra], pista [cifra per cifra], "riporterò pronto per il rullaggio".',
+    taxi:'Readback: [nominativo], Ravenna Radio, "autorizzato rullaggio", via [rullaggio], punto di attesa pista [cifra per cifra].',
+    takeoff:'Readback: [nominativo], Ravenna Radio, "autorizzato decollo", pista [cifra per cifra]. Conferma riporto se richiesto.',
+    position:'Accusa ricezione: [nominativo], "ricevuto". Conferma prossimo riporto.',
+    arrival:'Readback: [nominativo], Ravenna Radio, "autorizzato avvicinamento", pista [cifra per cifra], QFE [cifra per cifra]. Conferma riporto finale.',
+    emergency:'Se ricevi MAYDAY: "[nominativo], MAYDAY ricevuto, mantenete la frequenza, soccorsi allertati." Se ricevi PAN PAN: accusa ricezione, chiedi posizione.',
+  },
+  en:{
+    startup:'Readback structure: [callsign], Ravenna Radio, "start-up approved", QNH [digits], runway [digits], "will report ready to taxi".',
+    taxi:'Readback: [callsign], Ravenna Radio, "taxi approved", via [taxiway], holding point runway [digits].',
+    takeoff:'Readback: [callsign], Ravenna Radio, "cleared takeoff", runway [digits]. Confirm report if requested.',
+    position:'Acknowledge: [callsign], "roger". Confirm next report.',
+    arrival:'Readback: [callsign], Ravenna Radio, "cleared approach", runway [digits], QFE [digits]. Confirm final report.',
+    emergency:'If MAYDAY received: "[callsign], MAYDAY received, stand by, emergency services alerted." If PAN PAN: acknowledge, request position.',
+  }
+};
+
+// Criteri valutazione chiamate in arrivo
+const CRITERI_IN = {
+  startup:{required:['autorizzato avviamento|start-up approved|cleared start'],qnh:true,rwy:true,nominativo:true},
+  taxi:{required:['autorizzato rullaggio|taxi approved|taxi via'],nominativo:true},
+  takeoff:{required:['autorizzato decollo|cleared.*takeoff|cleared for takeoff'],rwy:true,nominativo:true},
+  position:{required:['ricevuto|roger|wilco'],nominativo:true},
+  arrival:{required:['autorizzato avvicinamento|cleared approach|cleared.*approach'],rwy:true,nominativo:true},
+  emergency:{required:['mayday'],nominativo:false},
+};
+
+// Criteri valutazione chiamate uscenti
+const CRITERI_OUT={
+  freqchange:{required_it:['roma informazioni|informazioni'],required_en:['rome information|information'],nominativo:true,quota:true,dep_arr:true},
+  fis:{required_it:['roma informazioni|informazioni'],required_en:['rome information|information'],nominativo:true,quota:true,dep_arr:true},
+  ctr:{required_it:['rimini torre|rimini'],required_en:['rimini tower|rimini'],nominativo:true,quota:true,dep_arr:true},
+};
+
+// Tipo di ogni fase: 'in' = ATC parla, tu readback; 'out' = tu chiami per primo
+const PHASE_TYPE={
+  startup:'in', taxi:'in', takeoff:'in', position:'in', arrival:'in', emergency:'in',
+  freqchange:'out', fis:'out', ctr:'out',
 };
 
 // ═══════════════════════════════════════════════════════════════
 // STATO
 // ═══════════════════════════════════════════════════════════════
-
 let G={
   cs:'I-LUBA', csF:'India Lima Uniform Bravo Alfa',
   act:'C150', dep:'LIDR', arr:'LIPR',
@@ -380,44 +522,34 @@ let G={
   rwy:'14', rwyF:'uno quattro',
   qnh:'1013', qnhF:'uno zero uno tre',
   twy:'Alpha',
-  phases:[], cur:0, sc:{ok:0,p:0,bad:0}, atcMsg:''
+  phases:[], cur:0, sc:{ok:0,p:0,bad:0}, atcMsg:'', currentType:'in'
 };
 
 // ═══════════════════════════════════════════════════════════════
-// VOCE — Web Speech API con selezione voce italiana
+// VOCE
 // ═══════════════════════════════════════════════════════════════
-
 let synth=window.speechSynthesis, voices=[], selVoice=null;
 
 function loadVoices(){
   voices=synth.getVoices();
   const sel=document.getElementById('vsel');
-  if(!voices.length){sel.innerHTML='<option>Nessuna voce disponibile</option>';return;}
-  // Preferisci voci online (più naturali) poi offline italiane poi tutte
-  const itOnline = voices.filter(v=>v.lang&&v.lang.startsWith('it')&&!v.localService);
-  const itLocal  = voices.filter(v=>v.lang&&v.lang.startsWith('it')&&v.localService);
-  const others   = voices.filter(v=>v.lang&&!v.lang.startsWith('it'));
-  const pool = [...itOnline,...itLocal,...others];
-  sel.innerHTML = pool.map((v,i)=>{
-    const badge = v.localService ? '' : ' ★';
-    return `<option value="${i}">${v.name} (${v.lang})${badge}</option>`;
-  }).join('');
-  selVoice = pool[0];
+  if(!voices.length){sel.innerHTML='<option>Caricamento...</option>';return;}
+  const langCode=LANG==='it'?'it':'en';
+  const online=voices.filter(v=>v.lang&&v.lang.startsWith(langCode)&&!v.localService);
+  const local=voices.filter(v=>v.lang&&v.lang.startsWith(langCode)&&v.localService);
+  const pool=[...online,...local,...voices.filter(v=>!v.lang.startsWith(langCode))];
+  sel.innerHTML=pool.map((v,i)=>`<option value="${i}">${v.name} (${v.lang})${v.localService?'':' ★'}</option>`).join('');
+  selVoice=pool[0];
   sel.onchange=e=>{selVoice=pool[+e.target.value];};
 }
 loadVoices();
 if(speechSynthesis.onvoiceschanged!==undefined)speechSynthesis.onvoiceschanged=loadVoices;
-
-document.getElementById('spd').oninput=e=>{
-  document.getElementById('spdv').textContent=parseFloat(e.target.value).toFixed(2)+'x';
-};
-
+document.getElementById('spd').oninput=e=>{document.getElementById('spdv').textContent=parseFloat(e.target.value).toFixed(2)+'x';};
 function getSpeed(){return parseFloat(document.getElementById('spd').value);}
 
-function speak(txt, onEnd){
+function speak(txt,onEnd){
   if(!synth){onEnd&&onEnd();return;}
   synth.cancel();
-  // Piccola pausa prima di parlare (più naturale)
   setTimeout(()=>{
     const u=new SpeechSynthesisUtterance(txt);
     u.rate=getSpeed(); u.pitch=0.92; u.volume=1;
@@ -426,13 +558,16 @@ function speak(txt, onEnd){
     u.onstart=()=>{if(dot)dot.style.display='inline';};
     u.onend=u.onerror=()=>{if(dot)dot.style.display='none';onEnd&&onEnd();};
     synth.speak(u);
-  }, 150);
+  },150);
 }
 
 function testVoice(){
-  const cs = document.getElementById('cs').value.trim().toUpperCase() || 'I-LUBA';
-  const csF = callsignToFonia(cs);
-  speak(`${csF}, Ravenna Radio, autorizzato avviamento, QNH uno zero uno tre, pista uno quattro, riportare pronto per il rullaggio.`);
+  const cs=document.getElementById('cs').value.trim().toUpperCase()||'I-LUBA';
+  const csF=csToFonia(cs);
+  const txt=LANG==='it'
+    ?`${csF}, Ravenna Radio, autorizzato avviamento, QNH uno zero uno tre, pista uno quattro, riportare pronto per il rullaggio.`
+    :`${csF}, Ravenna Radio, start-up approved, QNH one zero one three, runway one four, report ready to taxi.`;
+  speak(txt);
 }
 
 function replayVoice(){if(G.atcMsg)speak(G.atcMsg);}
@@ -440,54 +575,79 @@ function replayVoice(){if(G.atcMsg)speak(G.atcMsg);}
 // ═══════════════════════════════════════════════════════════════
 // UTILITY
 // ═══════════════════════════════════════════════════════════════
-
 function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
-function pad(n){return String(n).padStart(2,'0');}
 function getChecked(){return[...document.querySelectorAll('.egrid input:checked')].map(e=>e.value);}
 
+// Converte numero in fonia — usata dentro i template delle chiamate
+function numToFonia(n){
+  return String(n).split('').map(c=>NUM[+c]!==undefined?NUM[+c]:c).join(' ');
+}
+function pressToFonia(p){return numToFonia(p);}
+function rwyToFonia(r){return numToFonia(String(r).padStart(2,'0'));}
+function hdgToFonia(h){return numToFonia(String(h).padStart(3,'0'));}
+function sqkToFonia(s){return numToFonia(s);}
+function freqToFonia(f){
+  const p=String(f).split('.');
+  const i=p[0].split('').map(c=>NUM[+c]||c).join(' ');
+  const dec=(p[1]||'').replace(/0+$/,'');
+  const pt=LANG==='it'?'punto':'decimal';
+  return dec?i+' '+pt+' '+dec.split('').map(c=>NUM[+c]||c).join(' '):i;
+}
+
 function buildFlightParams(){
-  const rwyNum = Math.round(parseInt(G.hdg)/10) || 36;
-  G.rwy  = String(rwyNum).padStart(2,'0');
-  G.rwyF = rwyToFonia(G.rwy);
-  G.qnh  = String(rnd(1005,1025));
-  G.qnhF = pressToFonia(G.qnh);
-  G.hdgF = hdgToFonia(G.hdg);
-  G.csF  = callsignToFonia(G.cs);
-  G.twy  = ['Alpha','Bravo','Charlie'][rnd(0,2)];
+  // Ricalcola sempre con NUM corrente
+  const rwyNum=Math.round(parseInt(G.hdg)/10)||36;
+  G.rwy=String(rwyNum).padStart(2,'0');
+  G.rwyF=rwyToFonia(G.rwy);
+  G.qnh=String(rnd(1005,1025));
+  G.qnhF=pressToFonia(G.qnh);
+  G.hdgF=hdgToFonia(G.hdg);
+  G.csF=csToFonia(G.cs);
+  G.twy=['Alpha','Bravo','Charlie'][rnd(0,2)];
 }
 
 // ═══════════════════════════════════════════════════════════════
 // SIMULAZIONE
 // ═══════════════════════════════════════════════════════════════
+const PL_IT={startup:'Startup',taxi:'Rullaggio',takeoff:'Decollo',freqchange:'Freq. Change',fis:'FIS',ctr:'CTR',position:'Posizione',arrival:'Arrivo',emergency:'Emergenza'};
+const PL_EN={startup:'Startup',taxi:'Taxi',takeoff:'Takeoff',freqchange:'Freq. Change',fis:'FIS',ctr:'CTR',position:'Position',arrival:'Arrival',emergency:'Emergency'};
+const PF={startup:'121.700',taxi:'121.700',takeoff:'118.100',freqchange:'124.750',fis:'124.750',ctr:'118.100',position:'124.750',arrival:'121.700',emergency:'121.500'};
 
 function startSim(){
-  G.cs  = document.getElementById('cs').value.trim().toUpperCase()||'I-LUBA';
-  G.act = document.getElementById('act').value.trim()||'C150';
-  G.dep = document.getElementById('dep').value.trim().toUpperCase()||'LIDR';
-  G.arr = document.getElementById('arr').value.trim().toUpperCase()||'LIPR';
-  G.alt = document.getElementById('alt').value;
-  G.hdg = document.getElementById('hdg').value;
-  G.dtime = document.getElementById('dtime').value;
-  G.lv  = document.getElementById('lv').value;
-  G.phases = getChecked();
-  if(!G.phases.length){alert('Seleziona almeno una situazione!');return;}
-  G.cur=0; G.sc={ok:0,p:0,bad:0};
+  G.cs=document.getElementById('cs').value.trim().toUpperCase()||'I-LUBA';
+  G.act=document.getElementById('act').value.trim()||'C150';
+  G.dep=document.getElementById('dep').value.trim().toUpperCase()||'LIDR';
+  G.arr=document.getElementById('arr').value.trim().toUpperCase()||'LIPR';
+  G.alt=document.getElementById('alt').value;
+  G.hdg=document.getElementById('hdg').value;
+  G.dtime=document.getElementById('dtime').value;
+  G.lv=document.getElementById('lv').value;
+  G.phases=getChecked();
+  if(!G.phases.length){alert(LANG==='it'?'Seleziona almeno una situazione!':'Select at least one situation!');return;}
+  G.cur=0;G.sc={ok:0,p:0,bad:0};
   buildFlightParams();
   document.getElementById('setup').style.display='none';
   document.getElementById('sim').style.display='block';
   initMic();
-  renderPbar(); resetPhase();
+  renderPbar();resetPhase();
 }
 
 function renderPbar(){
+  const PL=LANG==='it'?PL_IT:PL_EN;
   document.getElementById('pbar').innerHTML=G.phases.map((p,i)=>
     `<div class="pi ${i<G.cur?'done':i===G.cur?'active':''}">${PL[p]||p}</div>`).join('');
 }
 
 function resetPhase(){
-  document.getElementById('atct').textContent='Premi "Ricevi chiamata" per iniziare questa fase...';
+  const phase=G.phases[G.cur];
+  const type=PHASE_TYPE[phase]||'in';
+  G.currentType=type;
+  const t=UI[LANG];
+
+  // Reset UI
+  document.getElementById('atct').textContent=t.waiting.replace('⏳ ','');
   document.getElementById('atct').className='atct dim';
-  document.getElementById('atcf').textContent='Frequenza: ---';
+  document.getElementById('atcf').textContent='---';
   document.getElementById('freqbadge').textContent='--- MHz';
   document.getElementById('uresp').value='';
   document.getElementById('evalbox').style.display='none';
@@ -500,172 +660,261 @@ function resetPhase(){
   document.getElementById('nextbtn').style.display='none';
   document.getElementById('hintbtn').style.display='none';
   G.atcMsg='';
-  if(typeof isRecording!=='undefined'&&isRecording) stopMic();
+
+  if(type==='in'){
+    document.getElementById('incoming-box').style.display='block';
+    document.getElementById('outgoing-box').style.display='none';
+    const lr=document.getElementById('lbl-receive');
+    if(lr)lr.textContent=t.receive;
+    document.getElementById('atct').textContent=LANG==='it'?'Premi "Ricevi chiamata" per iniziare...':'Press "Receive call" to start...';
+  } else {
+    document.getElementById('incoming-box').style.display='none';
+    document.getElementById('outgoing-box').style.display='block';
+    const lr=document.getElementById('lbl-receive');
+    if(lr)lr.textContent=LANG==='it'?'Prepara chiamata':'Prepare call';
+    // mostra istruzione
+    const outData=CALLS_OUT[LANG]&&CALLS_OUT[LANG][phase];
+    if(outData){
+      const freq=PF[phase]||'---';
+      document.getElementById('freqbadge').textContent=freq+' MHz';
+      document.getElementById('out-instruction').textContent=outData.instruction(G);
+      document.getElementById('out-freq').textContent=LANG==='it'?`Frequenza: ${freqToFonia(freq)} MHz`:`Frequency: ${freqToFonia(freq)} MHz`;
+    }
+  }
+  if(typeof isRecording!=='undefined'&&isRecording)stopMic();
 }
 
 function doGenerate(){
   const phase=G.phases[G.cur];
+  const type=G.currentType;
   const freq=PF[phase]||'121.700';
   document.getElementById('freqbadge').textContent=freq+' MHz';
-  document.getElementById('atcf').textContent='Frequenza: '+freqToFonia(freq)+' MHz';
-  document.getElementById('genbtn').disabled=true;
   document.getElementById('hintbtn').style.display='inline-flex';
-  document.getElementById('waitbox').style.display='block';
+  document.getElementById('genbtn').disabled=true;
 
-  setTimeout(()=>{
-    const pool=CALLS[phase]||CALLS.startup;
-    const fn=pool[rnd(0,pool.length-1)];
-    const callText=fn(G);
-    G.atcMsg=callText;
-    document.getElementById('waitbox').style.display='none';
-    const hide=document.getElementById('hideTxt').checked;
-    document.getElementById('atct').textContent=hide?'🔊 Ascolta la chiamata...':callText;
-    document.getElementById('atct').className='atct';
-    const sit=SIT[phase]||'';
-    if(sit){document.getElementById('hintbox').textContent='📍 '+sit;document.getElementById('hintbox').style.display='block';}
-    document.getElementById('genbtn').style.display='none';
-    speak(callText,()=>{
+  if(type==='in'){
+    // Chiamata in arrivo: ATC parla
+    document.getElementById('atcf').textContent=(LANG==='it'?'Frequenza: ':'Frequency: ')+freqToFonia(freq)+' MHz';
+    document.getElementById('atct').textContent=LANG==='it'?'In attesa...':'Standby...';
+    document.getElementById('atct').className='atct dim';
+    setTimeout(()=>{
+      const pool=(CALLS_IN[LANG]&&CALLS_IN[LANG][phase])||CALLS_IN['it'][phase]||CALLS_IN['it'].startup;
+      const fn=pool[rnd(0,pool.length-1)];
+      const callText=fn(G);
+      G.atcMsg=callText;
+      const hide=document.getElementById('hideTxt').checked;
+      document.getElementById('atct').textContent=hide?'🔊 '+(LANG==='it'?'Ascolta la chiamata...':'Listen to the call...'):callText;
+      document.getElementById('atct').className='atct';
+      const sit=(HINTS_IN[LANG]||HINTS_IN['it'])[phase]||'';
+      if(sit){document.getElementById('hintbox').textContent='📍 '+sit;document.getElementById('hintbox').style.display='block';}
+      document.getElementById('genbtn').style.display='none';
+      speak(callText,()=>{
+        document.getElementById('evalbtn').style.display='inline-flex';
+        document.getElementById('evalbtn').disabled=false;
+        document.getElementById('replaybtn').style.display='inline-flex';
+      });
+    },300);
+  } else {
+    // Chiamata uscente: prima mostra eventuale messaggio di trasferimento, poi aspetta che l'utente chiami
+    const outData=CALLS_OUT[LANG]&&CALLS_OUT[LANG][phase];
+    if(outData&&outData.trigger){
+      // Riproduci il messaggio di trasferimento prima
+      const triggerText=outData.trigger(G);
+      document.getElementById('atct').textContent=triggerText;
+      document.getElementById('atct').className='atct';
+      document.getElementById('incoming-box').style.display='block';
+      document.getElementById('atcf').textContent=(LANG==='it'?'Vecchia frequenza — ':'Previous frequency — ')+freqToFonia('121.700')+' MHz';
+      speak(triggerText,()=>{
+        // Dopo il messaggio, passa alla nuova frequenza
+        document.getElementById('incoming-box').style.display='none';
+        document.getElementById('outgoing-box').style.display='block';
+        document.getElementById('genbtn').style.display='none';
+        document.getElementById('evalbtn').style.display='inline-flex';
+        document.getElementById('evalbtn').disabled=false;
+      });
+    } else {
+      // Nessun trigger, mostra subito il box uscente
+      document.getElementById('genbtn').style.display='none';
       document.getElementById('evalbtn').style.display='inline-flex';
       document.getElementById('evalbtn').disabled=false;
-      document.getElementById('replaybtn').style.display='inline-flex';
-    });
-  },300);
+    }
+  }
 }
 
 function showHint(){
-  document.getElementById('hintbox').textContent='💡 Struttura: '+PH[G.phases[G.cur]];
+  const phase=G.phases[G.cur];
+  const type=G.currentType;
+  let hintText='';
+  if(type==='in'){
+    hintText=(HINTS_IN[LANG]||HINTS_IN['it'])[phase]||'';
+  } else {
+    const outData=CALLS_OUT[LANG]&&CALLS_OUT[LANG][phase];
+    if(outData) hintText=LANG==='it'?outData.hint_it:outData.hint_en;
+  }
+  document.getElementById('hintbox').textContent='💡 '+hintText;
   document.getElementById('hintbox').style.display='block';
 }
 
 // ═══════════════════════════════════════════════════════════════
 // VALUTAZIONE
 // ═══════════════════════════════════════════════════════════════
-
 function doEvaluate(){
   const ur=document.getElementById('uresp').value.trim().toLowerCase();
-  if(!ur){alert('Scrivi o registra prima la tua risposta!');return;}
+  if(!ur){alert(LANG==='it'?'Scrivi o registra prima la tua risposta!':'Write or record your response first!');return;}
   document.getElementById('evalbtn').disabled=true;
 
   const phase=G.phases[G.cur];
-  const crit=CRITERI[phase]||{required:[],nominativo:true,tips:''};
+  const type=G.currentType;
+  const t=UI[LANG];
+  let bene=[],manca=[],errori=[],score=10;
 
-  const qnhMatch=G.atcMsg.match(/QNH\s*([\w\s]+?)[\.,]/i);
-  const sqkMatch=G.atcMsg.match(/squawk\s*([\w\s]+?)[\.,]/i);
+  if(type==='in'){
+    // Valutazione readback chiamata in arrivo
+    const crit=CRITERI_IN[phase]||{required:[],nominativo:true};
 
-  let bene=[], manca=[], errori=[], score=10;
-
-  // Nominativo in apertura
-  if(crit.nominativo){
-    const csLow=G.cs.toLowerCase().replace(/-/g,'');
-    const csLetters=csLow.slice(-4); // ultime 4 lettere es "luba"
-    // Accetta forma fonetica (india lima...) o abbreviata (lima uniform...)
-    const foniaWords=G.csF.toLowerCase().split(' ');
-    const hasFonia=foniaWords.every(w=>ur.includes(w));
-    const hasShort=ur.includes(csLetters)||ur.includes(G.cs.toLowerCase());
-    if(hasFonia||hasShort){
-      bene.push('Nominativo in apertura corretto');
-    } else {
-      manca.push('Nominativo mancante o non in apertura');
-      score-=2;
+    // Nominativo
+    if(crit.nominativo){
+      const csL=G.cs.toLowerCase().replace(/-/g,'');
+      const foniaWords=G.csF.toLowerCase().split(' ');
+      if(foniaWords.every(w=>ur.includes(w))||ur.includes(csL.slice(-4))){
+        bene.push(LANG==='it'?'Nominativo corretto':'Correct callsign');
+      } else {
+        manca.push(LANG==='it'?'Nominativo mancante o errato':'Missing or incorrect callsign');
+        score-=2;
+      }
     }
-  }
 
-  // Elementi obbligatori
-  const reqMap={
-    'autorizzato avviamento':['autorizzato avviamento','avviamento autorizzato'],
-    'autorizzato rullaggio':['autorizzato rullaggio','rullaggio autorizzato'],
-    'autorizzato decollo':['autorizzato decollo','decollo autorizzato'],
-    'autorizzato transito':['autorizzato transito','transito autorizzato'],
-    'autorizzato avvicinamento':['autorizzato avvicinamento','avvicinamento autorizzato'],
-    'qnh':['qnh'],
-    'pista':['pista'],
-    'via':['via '],
-    'quota':['quota','piedi'],
-    'ricevuto':['ricevuto'],
-    'mayday':['mayday'],
-  };
-  for(const req of crit.required){
-    const variants=reqMap[req]||[req];
-    if(variants.some(v=>ur.includes(v))){
-      bene.push('"'+req+'" presente');
-    } else {
-      manca.push('Manca: "'+req+'"');
-      score-=2;
+    // Ente (Ravenna Radio per fasi locali)
+    if(['startup','taxi','takeoff','arrival'].includes(phase)){
+      if(ur.includes('ravenna')){
+        bene.push(LANG==='it'?'"Ravenna Radio" corretto':'"Ravenna Radio" correct');
+      } else {
+        manca.push(LANG==='it'?'Manca "Ravenna Radio"':'Missing "Ravenna Radio"');
+        score-=1;
+      }
     }
-  }
 
-  // Controlla Ravenna Radio per fasi locali
-  if(['startup','taxi','takeoff','arrival'].includes(phase)){
-    if(ur.includes('ravenna')){
-      bene.push('"Ravenna Radio" corretto');
-    } else {
-      manca.push('Manca denominazione ente "Ravenna Radio"');
-      score-=1;
+    // Elementi required (regex OR)
+    for(const req of crit.required){
+      const variants=req.split('|');
+      if(variants.some(v=>ur.includes(v))){
+        bene.push('"'+variants[0]+'"');
+      } else {
+        manca.push(LANG==='it'?'Manca: "'+variants[0]+'"':'Missing: "'+variants[0]+'"');
+        score-=2;
+      }
     }
-  }
 
-  // QNH: verifica che il valore sia presente
-  if(crit.required.includes('qnh')){
-    // Accetta sia forma numerica (1013) che fonetica (uno zero uno tre)
-    const qnhNum=G.qnh;
-    const qnhFon=G.qnhF;
-    if(ur.includes(qnhNum)||ur.includes(qnhFon)){
-      bene.push('Valore QNH corretto');
-    } else if(ur.includes('qnh')){
-      manca.push('QNH menzionato ma valore non corretto — deve essere cifra per cifra: "'+G.qnhF+'"');
-      score-=1;
+    // QNH
+    if(crit.qnh){
+      if(ur.includes(G.qnh)||ur.includes(G.qnhF)){
+        bene.push('QNH '+G.qnhF);
+      } else if(ur.includes('qnh')){
+        manca.push(LANG==='it'?'QNH presente ma valore errato — deve essere '+G.qnhF:'QNH mentioned but wrong value — should be '+G.qnhF);
+        score-=1;
+      } else {
+        manca.push(LANG==='it'?'Manca readback QNH ('+G.qnhF+')':'Missing QNH readback ('+G.qnhF+')');
+        score-=1;
+      }
     }
-  }
 
-  // Squawk
-  if(sqkMatch){
-    const sqkVal=sqkMatch[1].trim();
-    if(ur.includes('squawk')){
-      bene.push('Squawk nel readback');
-    } else {
-      manca.push('Manca readback squawk');
-      score-=1;
+    // Pista
+    if(crit.rwy){
+      if(ur.includes(G.rwy)||ur.includes(G.rwyF)){
+        bene.push(LANG==='it'?'Pista '+G.rwyF+' corretta':'Runway '+G.rwyF+' correct');
+      } else {
+        manca.push(LANG==='it'?'Manca readback pista ('+G.rwyF+')':'Missing runway readback ('+G.rwyF+')');
+        score-=1;
+      }
+    }
+
+  } else {
+    // Valutazione chiamata uscente
+    const crit=CRITERI_OUT[phase];
+    if(!crit){score=5;}
+    else {
+      // Ente chiamato correttamente
+      const reqEnts=LANG==='it'?crit.required_it:crit.required_en;
+      const entOk=reqEnts.some(r=>r.split('|').some(v=>ur.includes(v)));
+      if(entOk){
+        bene.push(LANG==='it'?'Ente chiamato correttamente':'Correct entity called');
+      } else {
+        manca.push(LANG==='it'?'Ente non identificato o errato':'Entity not identified or incorrect');
+        score-=3;
+      }
+
+      // Nominativo
+      if(crit.nominativo){
+        const foniaWords=G.csF.toLowerCase().split(' ');
+        if(foniaWords.every(w=>ur.includes(w))||ur.includes(G.cs.toLowerCase().replace(/-/g,'').slice(-4))){
+          bene.push(LANG==='it'?'Nominativo presente':'Callsign present');
+        } else {
+          manca.push(LANG==='it'?'Nominativo mancante':'Missing callsign');
+          score-=2;
+        }
+      }
+
+      // Quota
+      if(crit.quota){
+        const altFonia=numToFonia(G.alt);
+        if(ur.includes(G.alt)||ur.includes(altFonia)||ur.includes('piedi')||ur.includes('feet')){
+          bene.push(LANG==='it'?'Quota presente':'Altitude present');
+        } else {
+          manca.push(LANG==='it'?'Manca quota ('+numToFonia(G.alt)+' piedi)':'Missing altitude ('+numToFonia(G.alt)+' feet)');
+          score-=1;
+        }
+      }
+
+      // Dep/Arr
+      if(crit.dep_arr){
+        const hasRoute=ur.includes(G.dep.toLowerCase())||ur.includes(G.arr.toLowerCase());
+        if(hasRoute){
+          bene.push(LANG==='it'?'Rotta dep/arr presente':'Dep/arr route present');
+        } else {
+          manca.push(LANG==='it'?'Manca rotta (partenza/arrivo)':'Missing route (dep/arr)');
+          score-=1;
+        }
+      }
     }
   }
 
   score=Math.max(1,Math.min(10,score));
-  const verdict=score>=8?'CORRETTO':score>=5?'PARZIALE':'ERRATO';
-
-  if(verdict==='CORRETTO')G.sc.ok++;
-  else if(verdict==='PARZIALE')G.sc.p++;
-  else G.sc.bad++;
+  const verdict=score>=8?t.correct:score>=5?t.partial:t.wrong;
+  if(score>=8)G.sc.ok++; else if(score>=5)G.sc.p++; else G.sc.bad++;
   document.getElementById('sok').textContent=G.sc.ok;
   document.getElementById('spar').textContent=G.sc.p;
   document.getElementById('sbad').textContent=G.sc.bad;
 
-  const modelAnswer=buildModelAnswer(phase);
-  const cls=verdict==='CORRETTO'?'good':verdict==='PARZIALE'?'partial':'bad';
-  const icon=verdict==='CORRETTO'?'✓':verdict==='PARZIALE'?'△':'✗';
+  // Risposta modello
+  let modelAnswer='';
+  if(type==='in'){
+    const models={
+      startup:`${G.csF}, Ravenna Radio, ${LANG==='it'?'autorizzato avviamento':'start-up approved'}, QNH ${G.qnhF}, ${LANG==='it'?'pista':'runway'} ${G.rwyF}, ${LANG==='it'?'riporterò pronto per il rullaggio':'will report ready to taxi'}.`,
+      taxi:`${G.csF}, Ravenna Radio, ${LANG==='it'?'autorizzato rullaggio via':'taxi approved via'} ${G.twy}, ${LANG==='it'?'punto di attesa pista':'holding point runway'} ${G.rwyF}.`,
+      takeoff:`${G.csF}, Ravenna Radio, ${LANG==='it'?'autorizzato decollo':'cleared takeoff'}, ${LANG==='it'?'pista':'runway'} ${G.rwyF}.`,
+      position:`${G.csF}, ${LANG==='it'?'ricevuto, traffico ricevuto':'roger, traffic in sight'}.`,
+      arrival:`${G.csF}, Ravenna Radio, ${LANG==='it'?'autorizzato avvicinamento':'cleared approach'}, ${LANG==='it'?'pista':'runway'} ${G.rwyF}, QFE ${LANG==='it'?'confermato':'confirmed'}, ${LANG==='it'?'riporteremo finale':'will report final'}.`,
+      emergency:`${G.csF}, ${LANG==='it'?'MAYDAY ricevuto, mantenete la frequenza, soccorsi allertati':'MAYDAY received, standby, emergency services alerted'}.`,
+    };
+    modelAnswer=models[phase]||`${G.csF}, ${LANG==='it'?'ricevuto':'roger'}.`;
+  } else {
+    const outData=CALLS_OUT[LANG]&&CALLS_OUT[LANG][phase];
+    if(outData) modelAnswer=LANG==='it'?outData.model_it(G):outData.model_en(G);
+  }
+
+  const cls=score>=8?'good':score>=5?'partial':'bad';
+  const icon=score>=8?'✓':score>=5?'△':'✗';
   let html=`<div class="eval ${cls}"><div class="evh">${icon} ${verdict} — ${score}/10</div>`;
-  html+=`<div style="margin-bottom:8px">${crit.tips}</div>`;
   if(bene.length) html+=`<div style="margin-bottom:5px">✓ ${bene.join(' · ')}</div>`;
   if(manca.length) html+=`<div style="margin-bottom:5px">△ ${manca.join(' · ')}</div>`;
   if(errori.length) html+=`<div style="margin-bottom:5px">✗ ${errori.join(' · ')}</div>`;
-  html+=`<div class="modans"><div class="modl">Risposta corretta</div><div class="modt">"${modelAnswer}"</div></div></div>`;
+  if(modelAnswer) html+=`<div class="modans"><div class="modl">${t.model}</div><div class="modt">"${modelAnswer}"</div></div>`;
+  html+=`</div>`;
   document.getElementById('evalbox').innerHTML=html;
   document.getElementById('evalbox').style.display='block';
   document.getElementById('evalbtn').style.display='none';
   document.getElementById('nextbtn').style.display='inline-flex';
   document.getElementById('hintbtn').style.display='none';
-}
-
-function buildModelAnswer(phase){
-  const answers={
-    startup:`${G.csF}, Ravenna Radio, autorizzato avviamento, QNH ${G.qnhF}, pista ${G.rwyF}, riporterò pronto per il rullaggio.`,
-    taxi:`${G.csF}, Ravenna Radio, autorizzato rullaggio via ${G.twy}, punto di attesa pista ${G.rwyF}, riporterò in posizione.`,
-    takeoff:`${G.csF}, Ravenna Radio, autorizzato decollo pista ${G.rwyF}, riporterò lasciando la zona.`,
-    fis:`${G.csF}, ricevuto, traffico ricevuto, manterremo attenzione.`,
-    ctr:`${G.csF}, autorizzato transito CTR, quota confermata, squawk confermato, riporteremo uscita zona.`,
-    position:`${G.csF}, ricevuto, riporteremo ${G.arr} in vista.`,
-    arrival:`${G.csF}, Ravenna Radio, autorizzato avvicinamento pista ${G.rwyF}, QFE confermato, riporteremo finale.`,
-    emergency:`${G.csF}, MAYDAY ricevuto, mantenete la frequenza, soccorsi allertati. Confermate posizione e anime a bordo.`
-  };
-  return answers[phase]||`${G.csF}, Ravenna Radio, ricevuto.`;
 }
 
 function doNext(){
@@ -676,91 +925,63 @@ function doNext(){
 
 function showSummary(){
   document.getElementById('sim').style.display='none';
-  const t=G.sc.ok+G.sc.p+G.sc.bad;
-  const pct=t?Math.round((G.sc.ok+G.sc.p*0.5)/t*100):0;
+  const t=UI[LANG];
+  const total=G.sc.ok+G.sc.p+G.sc.bad;
+  const pct=total?Math.round((G.sc.ok+G.sc.p*0.5)/total*100):0;
   document.getElementById('summary').style.display='block';
   document.getElementById('summary').innerHTML=`
     <div class="section" style="text-align:center;padding:2rem">
       <div style="font-size:52px;margin-bottom:0.75rem">${pct>=80?'🟢':pct>=60?'🟡':'🔴'}</div>
-      <div class="stitle">Simulazione completata</div>
+      <div class="stitle">${t.completed}</div>
       <div class="summary-num">${pct}%</div>
       <div style="display:flex;justify-content:center;gap:2rem;margin-bottom:1.5rem;font-size:13px">
-        <span class="score-ok">✓ Corretti: ${G.sc.ok}</span>
-        <span class="score-p">△ Parziali: ${G.sc.p}</span>
-        <span class="score-bad">✗ Errati: ${G.sc.bad}</span>
+        <span class="score-ok">✓ ${G.sc.ok}</span>
+        <span class="score-p">△ ${G.sc.p}</span>
+        <span class="score-bad">✗ ${G.sc.bad}</span>
       </div>
-      <p style="font-size:13px;color:#6a8aaa;margin-bottom:1.5rem">
-        ${pct>=80?'Ottima fraseologia! Sei pronto per il volo reale.':pct>=60?'Buona base, ripassate alcune procedure.':'Continua ad allenarti sulle procedure standard ENAC.'}
-      </p>
-      <button class="btn primary" onclick="location.reload()">↺ Nuova simulazione</button>
+      <p style="font-size:13px;color:#6a8aaa;margin-bottom:1.5rem">${pct>=80?t.good:pct>=60?t.ok:t.bad}</p>
+      <button class="btn primary" onclick="location.reload()">${t.newSim}</button>
     </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
-// RICONOSCIMENTO VOCALE
+// MICROFONO
 // ═══════════════════════════════════════════════════════════════
-
 const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
-let recog=null, isRecording=false;
+let recog=null,isRecording=false;
 
 function initMic(){
   const micbtn=document.getElementById('micbtn');
   if(!SpeechRec){document.getElementById('nospeech').style.display='block';return;}
   micbtn.style.display='inline-flex';
   recog=new SpeechRec();
-  recog.lang='it-IT';
-  recog.continuous=true;
-  recog.interimResults=true;
-  recog.maxAlternatives=1;
+  recog.lang=LANG==='it'?'it-IT':'en-GB';
+  recog.continuous=true; recog.interimResults=true; recog.maxAlternatives=1;
   let finalT='';
-  recog.onstart=()=>{
-    isRecording=true; finalT='';
-    micbtn.textContent='⏹ Stop';
-    micbtn.classList.add('recording');
-    document.getElementById('transcript-live').textContent='🎙 In ascolto...';
-  };
-  recog.onresult=(e)=>{
-    let interim='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      const t=e.results[i][0].transcript;
-      if(e.results[i].isFinal) finalT+=t+' ';
-      else interim=t;
-    }
-    document.getElementById('transcript-live').textContent=interim?'…'+interim:'';
-    if(finalT.trim()) document.getElementById('uresp').value=finalT.trim();
-  };
-  recog.onerror=(e)=>{
-    stopMic();
-    if(e.error==='not-allowed'){
-      document.getElementById('nospeech').textContent='⚠ Microfono bloccato. Consenti accesso microfono nelle impostazioni del browser.';
-      document.getElementById('nospeech').style.display='block';
-    }
-  };
-  recog.onend=()=>{if(isRecording) recog.start();};
+  recog.onstart=()=>{isRecording=true;finalT='';const ml=document.getElementById('mic-label');if(ml)ml.textContent=UI[LANG].micstop;micbtn.classList.add('recording');document.getElementById('transcript-live').textContent='🎙 '+(LANG==='it'?'In ascolto...':'Listening...');};
+  recog.onresult=(e)=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)finalT+=t+' ';else interim=t;}document.getElementById('transcript-live').textContent=interim?'…'+interim:'';if(finalT.trim())document.getElementById('uresp').value=finalT.trim();};
+  recog.onerror=(e)=>{stopMic();if(e.error==='not-allowed'){const ns=document.getElementById('nospeech');ns.textContent=LANG==='it'?'⚠ Microfono bloccato. Consenti accesso nelle impostazioni.':'⚠ Microphone blocked. Allow access in browser settings.';ns.style.display='block';}};
+  recog.onend=()=>{if(isRecording)recog.start();};
 }
 
 function toggleMic(){
   if(!recog)return;
-  if(isRecording) stopMic();
-  else{
-    if(synth)synth.cancel();
-    document.getElementById('sdot').style.display='none';
-    recog.start();
-  }
+  if(isRecording)stopMic();
+  else{if(synth)synth.cancel();document.getElementById('sdot').style.display='none';recog.start();}
 }
 
 function stopMic(){
   isRecording=false;
   try{recog.stop();}catch(e){}
-  const btn=document.getElementById('micbtn');
-  btn.textContent='🎙 Parla';
-  btn.classList.remove('recording');
+  const ml=document.getElementById('mic-label');if(ml)ml.textContent=UI[LANG].micspeech;
+  const btn=document.getElementById('micbtn');btn.classList.remove('recording');
   document.getElementById('transcript-live').textContent='';
   const evalbtn=document.getElementById('evalbtn');
-  if(evalbtn.style.display!=='none'&&document.getElementById('uresp').value.trim()){
-    setTimeout(doEvaluate,400);
-  }
+  if(evalbtn.style.display!=='none'&&document.getElementById('uresp').value.trim()){setTimeout(doEvaluate,400);}
 }
+
+// Init UI
+applyLangUI();
 </script>
 </body>
 </html>
